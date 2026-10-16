@@ -34,10 +34,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -52,10 +56,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -70,10 +78,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -88,10 +100,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -106,10 +122,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -124,10 +144,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -142,10 +166,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -160,10 +188,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -178,10 +210,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -196,10 +232,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -214,10 +254,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -232,10 +276,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -250,10 +298,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -268,10 +320,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -286,10 +342,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -304,10 +364,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -322,10 +386,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -340,10 +408,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -358,10 +430,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -376,10 +452,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -394,10 +474,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -412,10 +496,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -430,10 +518,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -448,10 +540,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -466,10 +562,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -484,10 +584,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -502,10 +606,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -520,10 +628,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -538,10 +650,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -556,10 +672,14 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         },
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -574,7 +694,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -589,7 +711,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -604,7 +728,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -619,7 +745,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -634,7 +762,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -649,7 +779,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -664,7 +796,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -679,7 +813,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -694,7 +830,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -709,7 +847,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -724,7 +864,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -739,7 +881,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -754,7 +898,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -769,7 +915,9 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
@@ -784,14 +932,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Shuttle",
           "Push": "Press",
@@ -807,14 +957,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Jog",
           "Push": "Press",
@@ -830,14 +982,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Play Speed",
           "Push": "Press",
@@ -853,14 +1007,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Position",
           "Push": "Press",
@@ -876,14 +1032,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Audio Channels",
           "Push": "Press",
@@ -899,14 +1057,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Clip List",
           "Push": "Press",
@@ -922,14 +1082,16 @@
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
-          "Image": "images/icon"
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
         }
       ],
       "Controllers": [
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$B1",
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
         "TriggerDescription": {
           "Rotate": "Raw Dial",
           "Push": "Press",

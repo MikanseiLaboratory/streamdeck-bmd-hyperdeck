@@ -28,8 +28,8 @@ pub struct Segment {
     pub state: SegmentState,
 }
 
-/// Built-in Stream Deck+ layout.
-pub const LAYOUT_B1: &str = "$B1";
+/// Touchscreen layout sized for a timecode or a clip name.
+pub const LAYOUT_DIAL: &str = "dev.mikanseilaboratory.bmd.hyperdeck.dial";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
 
@@ -89,7 +89,7 @@ pub fn key_image(kind: ActionKind, segments: &[Segment], foreground: &str) -> St
 
 /// Layout id and `setFeedback` payload.
 ///
-/// One deck uses `$B1`. Two or more decks use `layouts/dial-multi.json`.
+/// One deck uses `layouts/dial.json`. Two or more decks use `layouts/dial-multi.json`.
 pub fn dial_feedback(
     kind: ActionKind,
     segments: &[Segment],
@@ -104,7 +104,7 @@ pub fn dial_feedback(
         let level = levels.first().copied().unwrap_or(0);
         let (title, value) = dial_text(kind, caption);
         (
-            LAYOUT_B1.to_string(),
+            LAYOUT_DIAL.to_string(),
             json!({
                 "title": title,
                 "value": value,
@@ -290,7 +290,7 @@ mod tests {
             &[2],
             "#f4f7fb",
         );
-        assert_eq!(layout, LAYOUT_B1);
+        assert_eq!(layout, LAYOUT_DIAL);
         assert_eq!(payload["title"], "Shuttle");
         assert_eq!(payload["value"], "100%");
         assert_eq!(payload["indicator"]["value"], 2);
@@ -325,7 +325,7 @@ mod tests {
             &[100],
             "#f4f7fb",
         );
-        assert_eq!(layout, LAYOUT_B1);
+        assert_eq!(layout, LAYOUT_DIAL);
         assert_eq!(payload["title"], "interview");
         assert_eq!(payload["value"], "3");
     }

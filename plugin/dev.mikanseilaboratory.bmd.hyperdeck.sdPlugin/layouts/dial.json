@@ -5,26 +5,26 @@
     {
       "key": "title",
       "type": "text",
-      "rect": [16, 10, 168, 24],
-      "font": { "size": 16, "weight": 600 },
+      "rect": [8, 2, 184, 16],
+      "font": { "size": 11, "weight": 500 },
       "alignment": "left"
     },
     {
       "key": "icon",
       "type": "pixmap",
-      "rect": [16, 40, 48, 48]
+      "rect": [8, 22, 32, 32]
     },
     {
       "key": "value",
       "type": "text",
-      "rect": [76, 40, 108, 32],
-      "font": { "size": 24, "weight": 600 },
+      "rect": [44, 20, 148, 24],
+      "font": { "size": 14, "weight": 600 },
       "alignment": "right"
     },
     {
       "key": "indicator",
       "type": "bar",
-      "rect": [76, 74, 108, 12],
+      "rect": [44, 48, 148, 8],
       "value": 0,
       "subtype": 4,
       "border_w": 0

@@ -5,8 +5,8 @@
     {
       "key": "title",
       "type": "text",
-      "rect": [8, 8, 184, 20],
-      "font": { "size": 16, "weight": 600 },
+      "rect": [8, 4, 184, 16],
+      "font": { "size": 11, "weight": 500 },
       "alignment": "left"
     },
     {
