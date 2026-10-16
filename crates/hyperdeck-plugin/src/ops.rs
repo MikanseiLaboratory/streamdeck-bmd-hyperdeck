@@ -92,8 +92,8 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             indicator: 0,
         },
         ActionKind::ClipList => Face {
-            active: !snap.transport_value("clip id").is_empty(),
-            title: clip_title(snap),
+            active: !current_clip_id(snap).is_empty(),
+            title: clip_list_caption(snap),
             indicator: clip_indicator(snap),
         },
         ActionKind::PlayRange => Face {
@@ -659,13 +659,27 @@ fn audio_channel_base(snap: &DeckSnapshot) -> i32 {
     }
 }
 
+fn current_clip_id(snap: &DeckSnapshot) -> &str {
+    let id = snap.transport_value("clip id").trim();
+    if id.is_empty() || id.eq_ignore_ascii_case("none") {
+        ""
+    } else {
+        id
+    }
+}
+
 fn clip_title(snap: &DeckSnapshot) -> String {
     let name = snap.clip_name();
     if name.is_empty() {
-        snap.transport_value("clip id").to_string()
+        current_clip_id(snap).to_string()
     } else {
         name
     }
+}
+
+/// Dial caption: timeline number, then the clip name, split by a record separator.
+fn clip_list_caption(snap: &DeckSnapshot) -> String {
+    format!("{}\u{1e}{}", current_clip_id(snap), snap.clip_name())
 }
 
 fn clip_indicator(snap: &DeckSnapshot) -> u8 {
@@ -996,7 +1010,7 @@ mod tests {
         let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
         assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "interview");
+        assert_eq!(shown.title, "3\u{1e}interview");
         assert_eq!(shown.indicator, 100);
     }
 

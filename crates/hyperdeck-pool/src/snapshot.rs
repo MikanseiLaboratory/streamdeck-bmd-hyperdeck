@@ -68,7 +68,7 @@ impl DeckSnapshot {
 
     /// Name of the current clip id, when the clip list has it.
     pub fn clip_name(&self) -> String {
-        let id = self.transport_value("clip id");
+        let id = self.transport_value("clip id").trim();
         self.clips
             .iter()
             .find(|clip| clip.id == id)
@@ -169,6 +169,26 @@ fn merge_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     }
 }
 
+fn clip_name_from_row(rest: &str) -> String {
+    let tokens: Vec<&str> = rest.split_whitespace().collect();
+    if tokens.len() >= 3
+        && is_timecode(tokens[tokens.len() - 1])
+        && is_timecode(tokens[tokens.len() - 2])
+    {
+        return tokens[..tokens.len() - 2].join(" ");
+    }
+    tokens.first().copied().unwrap_or("").to_string()
+}
+
+fn is_timecode(token: &str) -> bool {
+    let mut parts = token.split([':', ';']);
+    (0..4).all(|_| {
+        parts
+            .next()
+            .is_some_and(|part| part.len() == 2 && part.chars().all(|ch| ch.is_ascii_digit()))
+    }) && parts.next().is_none()
+}
+
 fn parse_rows(body: &str) -> Vec<ClipRow> {
     let mut rows = Vec::new();
     for line in body.lines() {
@@ -183,10 +203,9 @@ fn parse_rows(body: &str) -> Vec<ClipRow> {
         if id.is_empty() || !id.chars().all(|ch| ch.is_ascii_digit()) {
             continue;
         }
-        let name = rest.split_whitespace().next().unwrap_or("").to_string();
         rows.push(ClipRow {
             id: id.to_string(),
-            name,
+            name: clip_name_from_row(rest),
         });
     }
     rows
@@ -239,5 +258,25 @@ mod tests {
             params: vec![("display timecode".into(), "01:02:03:04".into())],
         });
         assert_eq!(snapshot.transport_value("display timecode"), "01:02:03:04");
+    }
+
+    #[test]
+    fn clip_rows_keep_the_full_name_before_the_timecodes() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 205,
+            text: "clips info".into(),
+            body: "clip count: 2\r\n1: My Clip 00:00:00:00 00:00:10:00\r\n2: other.mov 00:00:10:00 00:00:05:00\r\n".into(),
+            params: Vec::new(),
+        });
+        assert_eq!(snapshot.clips[0].name, "My Clip");
+        assert_eq!(snapshot.clips[1].name, "other.mov");
+        snapshot.apply(&DeckMessage {
+            code: 206,
+            text: "disk list".into(),
+            body: "1: clip.mov H.264 1920x1080 00:00:10:00\r\n".into(),
+            params: Vec::new(),
+        });
+        assert_eq!(snapshot.disk_clips[0].name, "clip.mov");
     }
 }

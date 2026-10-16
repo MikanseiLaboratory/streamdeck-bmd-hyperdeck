@@ -522,23 +522,20 @@ function Fields({
 }
 
 function ClipRow({ value, clips, onChange }: { value: string; clips: { id: string; name: string }[]; onChange: (value: string) => void }) {
+  if (clips.length === 0) {
+    return <TextRow label="Clip" value={value} onChange={onChange} />;
+  }
+  const known = clips.some((clip) => clip.id === value);
   return (
-    <div className="sdpi-item">
-      <div className="sdpi-item-label">Clip</div>
-      <input
-        className="sdpi-item-value"
-        list="hyperdeck-clips"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <datalist id="hyperdeck-clips">
-        {clips.map((clip) => (
-          <option key={clip.id} value={clip.id}>
-            {clip.name}
-          </option>
-        ))}
-      </datalist>
-    </div>
+    <SelectRow label="Clip" value={value} onChange={onChange}>
+      <option value="">Select</option>
+      {!known && value !== "" && <option value={value}>{value}</option>}
+      {clips.map((clip) => (
+        <option key={clip.id} value={clip.id}>
+          {clip.name ? `${clip.id}: ${clip.name}` : clip.id}
+        </option>
+      ))}
+    </SelectRow>
   );
 }
 
@@ -632,9 +629,16 @@ function targetedIds(instances: InstanceConfig[], groups: TargetGroup[], target:
 function uniqueClips(decks: CatalogDeck[]) {
   const seen = new Map<string, string>();
   for (const deck of decks) {
-    for (const clip of [...(deck.clips ?? []), ...(deck.diskClips ?? [])]) {
+    for (const clip of deck.clips ?? []) {
       if (!seen.has(clip.id)) seen.set(clip.id, clip.name);
     }
   }
-  return [...seen.entries()].map(([id, name]) => ({ id, name }));
+  return [...seen.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((left, right) => {
+      const a = Number(left.id);
+      const b = Number(right.id);
+      if (Number.isFinite(a) && Number.isFinite(b) && a !== b) return a - b;
+      return left.id.localeCompare(right.id);
+    });
 }

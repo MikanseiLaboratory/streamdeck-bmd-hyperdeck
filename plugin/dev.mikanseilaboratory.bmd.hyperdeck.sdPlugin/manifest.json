@@ -156,7 +156,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clip",
       "Name": "Clip",
       "Icon": "images/icon",
-      "Tooltip": "Go to a clip. Hold to play it.",
+      "Tooltip": "Go to a timeline clip by number. Shows the current clip name. Hold to play it.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -895,7 +895,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
       "Name": "Clip List",
       "Icon": "images/icon",
-      "Tooltip": "Move through the clip list. Press to play. Touch to stop.",
+      "Tooltip": "Shows the current clip name. Rotate to another clip. Press to play. Touch to stop.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {

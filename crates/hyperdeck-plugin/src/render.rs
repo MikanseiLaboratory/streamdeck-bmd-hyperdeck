@@ -102,11 +102,12 @@ pub fn dial_feedback(
         let segment = segments.first();
         let caption = captions.first().map(String::as_str).unwrap_or("");
         let level = levels.first().copied().unwrap_or(0);
+        let (title, value) = dial_text(kind, caption);
         (
             LAYOUT_B1.to_string(),
             json!({
-                "title": kind.dial_heading(),
-                "value": caption,
+                "title": title,
+                "value": value,
                 "icon": icon,
                 "indicator": indicator(segment, level),
             }),
@@ -115,8 +116,14 @@ pub fn dial_feedback(
         let title = captions
             .iter()
             .take(4)
-            .filter(|caption| !caption.is_empty())
-            .cloned()
+            .map(|caption| {
+                if kind == ActionKind::ClipList {
+                    dial_text(kind, caption).0
+                } else {
+                    caption.clone()
+                }
+            })
+            .filter(|caption| !caption.is_empty() && caption != kind.dial_heading())
             .collect::<Vec<_>>()
             .join(" · ");
         let mut payload = json!({ "title": title });
@@ -128,6 +135,26 @@ pub fn dial_feedback(
         }
         (LAYOUT_MULTI.to_string(), payload)
     }
+}
+
+fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
+    if kind == ActionKind::ClipList {
+        let (id, name) = caption.split_once('\u{1e}').unwrap_or(("", caption));
+        let title = if !name.is_empty() {
+            name.to_string()
+        } else if !id.is_empty() {
+            id.to_string()
+        } else {
+            kind.dial_heading().to_string()
+        };
+        let value = if id.is_empty() {
+            String::new()
+        } else {
+            id.to_string()
+        };
+        return (title, value);
+    }
+    (kind.dial_heading().to_string(), caption.to_string())
 }
 
 fn indicator(segment: Option<&Segment>, level: u8) -> Value {
@@ -270,7 +297,7 @@ mod tests {
         assert!(payload.get("indicator1").is_none());
 
         let two = [
-            one,
+            one.clone(),
             Segment {
                 label: "B".into(),
                 color: "#ef5b5b".into(),
@@ -285,9 +312,21 @@ mod tests {
             "#f4f7fb",
         );
         assert_eq!(layout, LAYOUT_MULTI);
+        assert_eq!(payload["title"], "100% · 0%");
         assert_eq!(payload["indicator1"]["value"], 2);
         assert_eq!(payload["indicator2"]["value"], 0);
         assert_eq!(payload["indicator2"]["bar_fill_c"], "#ef5b5b");
         assert!(payload.get("indicator").is_none());
+
+        let (layout, payload) = dial_feedback(
+            ActionKind::ClipList,
+            std::slice::from_ref(&one),
+            &["3\u{1e}interview".into()],
+            &[100],
+            "#f4f7fb",
+        );
+        assert_eq!(layout, LAYOUT_B1);
+        assert_eq!(payload["title"], "interview");
+        assert_eq!(payload["value"], "3");
     }
 }
