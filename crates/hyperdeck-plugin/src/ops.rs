@@ -812,11 +812,44 @@ fn value_face(current: &str, wanted: &str) -> Face {
 
 fn display_timecode(snap: &DeckSnapshot) -> String {
     let display = snap.transport_value("display timecode");
-    if display.is_empty() {
-        snap.transport_value("timecode").to_string()
+    let raw = if display.is_empty() {
+        snap.transport_value("timecode")
     } else {
-        display.to_string()
+        display
+    };
+    short_timecode(raw)
+}
+
+/// `HH:MM:SS:FF` shown as `mm:ss`. Hours appear only when they are greater than zero.
+fn short_timecode(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return String::new();
     }
+    let (sign, body) = match trimmed.as_bytes().first() {
+        Some(b'+' | b'-') => (&trimmed[..1], &trimmed[1..]),
+        _ => ("", trimmed),
+    };
+    let parts: Vec<&str> = body.split([':', ';']).collect();
+    if parts.len() != 3 && parts.len() != 4 {
+        return trimmed.to_string();
+    }
+    let hours_ok = !parts[0].is_empty() && parts[0].bytes().all(|byte| byte.is_ascii_digit());
+    let rest_ok = parts[1..3]
+        .iter()
+        .all(|part| part.len() == 2 && part.bytes().all(|byte| byte.is_ascii_digit()));
+    let frames_ok = parts.len() == 3
+        || (parts[3].len() == 2 && parts[3].bytes().all(|byte| byte.is_ascii_digit()));
+    if !hours_ok || !rest_ok || !frames_ok {
+        return trimmed.to_string();
+    }
+    let hours: u32 = parts[0].parse().unwrap_or(0);
+    let shown = if hours > 0 {
+        format!("{hours:02}:{}:{}", parts[1], parts[2])
+    } else {
+        format!("{}:{}", parts[1], parts[2])
+    };
+    format!("{sign}{shown}")
 }
 
 fn recording_time(snap: &DeckSnapshot) -> String {
@@ -824,7 +857,7 @@ fn recording_time(snap: &DeckSnapshot) -> String {
     if time.is_empty() {
         snap.status().to_string()
     } else {
-        time.to_string()
+        short_timecode(time)
     }
 }
 
@@ -857,15 +890,15 @@ fn playrange_title(snap: &DeckSnapshot) -> String {
             String::new()
         }
     } else {
-        format!("{start}–{end}")
+        format!("{}–{}", short_timecode(&start), short_timecode(&end))
     }
 }
 
 fn status_title(params: &ActionParams, snap: &DeckSnapshot) -> String {
     match params.status_field.as_str() {
         "speed" => snap.speed().to_string(),
-        "timecode" | "timeline" => snap.transport_value("timecode").to_string(),
-        "display timecode" => snap.transport_value("display timecode").to_string(),
+        "timecode" | "timeline" => short_timecode(snap.transport_value("timecode")),
+        "display timecode" => short_timecode(snap.transport_value("display timecode")),
         "clip" => {
             let name = snap.clip_name();
             if name.is_empty() {
@@ -966,6 +999,21 @@ mod tests {
         let face = face(ActionKind::Shuttle, &params, &snap);
         assert_eq!(face.title, "100%");
         assert_eq!(face.indicator, 2);
+    }
+
+    #[test]
+    fn displayed_timecode_hides_zero_hours_and_frames() {
+        assert_eq!(short_timecode("00:01:23:04"), "01:23");
+        assert_eq!(short_timecode("00:00:05;12"), "00:05");
+        assert_eq!(short_timecode("01:02:03:04"), "01:02:03");
+        assert_eq!(short_timecode("10:00:00:00"), "10:00:00");
+        assert_eq!(short_timecode(""), "");
+        assert_eq!(short_timecode("stopped"), "stopped");
+        let mut snap = snap_status("play", "100");
+        snap.transport
+            .insert("display timecode".into(), "00:04:05:06".into());
+        let shown = face(ActionKind::Jog, &ActionParams::default(), &snap);
+        assert_eq!(shown.title, "04:05");
     }
 
     #[test]
