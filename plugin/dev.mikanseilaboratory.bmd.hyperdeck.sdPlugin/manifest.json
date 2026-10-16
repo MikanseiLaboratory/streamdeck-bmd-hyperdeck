@@ -941,7 +941,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Shuttle",
           "Push": "Press",
@@ -966,7 +966,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Jog",
           "Push": "Press",
@@ -991,7 +991,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Play Speed",
           "Push": "Press",
@@ -1016,7 +1016,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Position",
           "Push": "Press",
@@ -1041,7 +1041,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Audio Channels",
           "Push": "Press",
@@ -1066,7 +1066,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Clip List",
           "Push": "Press",
@@ -1091,7 +1091,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Raw Dial",
           "Push": "Press",

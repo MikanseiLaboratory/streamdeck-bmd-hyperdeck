@@ -29,7 +29,7 @@ pub struct Segment {
 }
 
 /// Touchscreen layout sized for a timecode or a clip name.
-pub const LAYOUT_DIAL: &str = "dev.mikanseilaboratory.bmd.hyperdeck.dial";
+pub const LAYOUT_DIAL: &str = "layouts/dial.json";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
 
