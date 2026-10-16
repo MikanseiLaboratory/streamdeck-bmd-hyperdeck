@@ -1,0 +1,9 @@
+/target
+/artifacts
+**/*.streamDeckPlugin
+node_modules
+pi/dist
+plugin/**/propertyinspector
+plugin/**/bin
+bindings/
+.DS_Store

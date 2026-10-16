@@ -1,0 +1,205 @@
+{
+  "Name": "HyperDeck [MikanseiLaboratory]",
+  "Description": "Control any number of named HyperDeck decks from Stream Deck.",
+  "Category": "HyperDeck [MikanseiLaboratory]",
+  "dev.mikanseilaboratory.bmd.hyperdeck.play": {
+    "Name": "Play",
+    "Tooltip": "Play or stop. Lights while playing."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.record": {
+    "Name": "Record",
+    "Tooltip": "Record or stop. Hold to spill."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stop": {
+    "Name": "Stop",
+    "Tooltip": "Stop. Lights while stopped."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.preview": {
+    "Name": "Preview",
+    "Tooltip": "Toggle preview."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
+    "Name": "Loop",
+    "Tooltip": "Toggle loop playback."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
+    "Name": "Single Clip",
+    "Tooltip": "Toggle single clip playback."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
+    "Name": "Slot",
+    "Tooltip": "Select a slot."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clip": {
+    "Name": "Clip",
+    "Tooltip": "Go to a clip. Hold to play it."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playrange": {
+    "Name": "Play Range",
+    "Tooltip": "Set a play range. Hold to clear it."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remote": {
+    "Name": "Remote",
+    "Tooltip": "Toggle remote control."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playonstartup": {
+    "Name": "Play On Startup",
+    "Tooltip": "Toggle play on startup."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stopmode": {
+    "Name": "Stop Mode",
+    "Tooltip": "Set the stop mode."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordtrigger": {
+    "Name": "Record Trigger",
+    "Tooltip": "Set the record trigger."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.videoinput": {
+    "Name": "Video Input",
+    "Tooltip": "Set the video input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audioinput": {
+    "Name": "Audio Input",
+    "Tooltip": "Set the audio input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.fileformat": {
+    "Name": "File Format",
+    "Tooltip": "Set the file format."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiocodec": {
+    "Name": "Audio Codec",
+    "Tooltip": "Set the audio codec."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeinput": {
+    "Name": "Timecode Input",
+    "Tooltip": "Set the timecode input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeoutput": {
+    "Name": "Timecode Output",
+    "Tooltip": "Set the timecode output."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.dynamicrange": {
+    "Name": "Dynamic Range",
+    "Tooltip": "Set a dynamic range override."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordcache": {
+    "Name": "Record Cache",
+    "Tooltip": "Toggle the record cache."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.appendtimestamp": {
+    "Name": "Append Timestamp",
+    "Tooltip": "Toggle appending a timestamp."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.usbspill": {
+    "Name": "USB Spill",
+    "Tooltip": "Toggle USB spill."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencesource": {
+    "Name": "Reference Source",
+    "Tooltip": "Set the reference source."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.genlock": {
+    "Name": "Genlock",
+    "Tooltip": "Toggle genlock resync."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.externaldrive": {
+    "Name": "External Drive",
+    "Tooltip": "Select an external drive."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.nas": {
+    "Name": "NAS",
+    "Tooltip": "Add, remove, select, or deselect a NAS."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.droppedframes": {
+    "Name": "Dropped Frames",
+    "Tooltip": "Lights when frames have been dropped."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remaining": {
+    "Name": "Remaining",
+    "Tooltip": "Lights when remaining record time is low."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencelock": {
+    "Name": "Reference Lock",
+    "Tooltip": "Lights when reference is locked."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipstep": {
+    "Name": "Clip Step",
+    "Tooltip": "Step to the next or previous clip."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.goto": {
+    "Name": "Go To",
+    "Tooltip": "Go to a timeline, clip, or timecode."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.identify": {
+    "Name": "Identify",
+    "Tooltip": "Identify the deck."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordnamed": {
+    "Name": "Record Named",
+    "Tooltip": "Start a recording with a name."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsadd": {
+    "Name": "Clips Add",
+    "Tooltip": "Add a clip to the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsremove": {
+    "Name": "Clips Remove",
+    "Tooltip": "Remove a clip from the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsrebuild": {
+    "Name": "Clips Rebuild",
+    "Tooltip": "Rebuild the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsclear": {
+    "Name": "Clips Clear",
+    "Tooltip": "Clear the timeline after confirmation."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slotunblock": {
+    "Name": "Slot Unblock",
+    "Tooltip": "Unblock a slot."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodepreset": {
+    "Name": "Timecode Preset",
+    "Tooltip": "Set the timecode preset."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordprefix": {
+    "Name": "Record Prefix",
+    "Tooltip": "Set the record prefix."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slate": {
+    "Name": "Slate",
+    "Tooltip": "Send slate metadata."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.raw": {
+    "Name": "Raw",
+    "Tooltip": "Send one Ethernet command."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.status": {
+    "Name": "Status",
+    "Tooltip": "Show one transport or device field."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.shuttle": {
+    "Name": "Shuttle",
+    "Tooltip": "Shuttle speed. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.jog": {
+    "Name": "Jog",
+    "Tooltip": "Jog by frames. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playspeed": {
+    "Name": "Play Speed",
+    "Tooltip": "Change play speed. Press to play or stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.position": {
+    "Name": "Position",
+    "Tooltip": "Move the timeline. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiochannels": {
+    "Name": "Audio Channels",
+    "Tooltip": "Change audio input channels."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
+    "Name": "Raw Dial",
+    "Tooltip": "Send a raw command for each dial gesture."
+  }
+}

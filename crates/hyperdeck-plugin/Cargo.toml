@@ -1,0 +1,39 @@
+[package]
+name = "hyperdeck-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "hyperdeck_plugin"
+path = "src/lib.rs"
+
+[[bin]]
+name = "plugin"
+path = "src/main.rs"
+
+[[bin]]
+name = "typegen"
+path = "src/bin/typegen.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+hyperdeck-pool = { path = "../hyperdeck-pool" }
+serde.workspace = true
+serde_json.workspace = true
+streamdeck-plugin = { version = "0.1", features = ["macros", "typegen"] }
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+ts-rs = "10.1"
+
+[dev-dependencies]
+hyperdeck-pool = { path = "../hyperdeck-pool", features = ["mock"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+
+[lints]
+workspace = true

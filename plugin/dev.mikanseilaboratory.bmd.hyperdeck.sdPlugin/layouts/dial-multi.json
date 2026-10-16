@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "dev.mikanseilaboratory.bmd.hyperdeck.dial-multi",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [8, 8, 184, 20],
+      "font": { "size": 16, "weight": 600 },
+      "alignment": "left"
+    },
+    {
+      "key": "indicator1",
+      "type": "bar",
+      "rect": [8, 32, 184, 12],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    },
+    {
+      "key": "indicator2",
+      "type": "bar",
+      "rect": [8, 48, 184, 12],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    },
+    {
+      "key": "indicator3",
+      "type": "bar",
+      "rect": [8, 64, 184, 12],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    },
+    {
+      "key": "indicator4",
+      "type": "bar",
+      "rect": [8, 80, 184, 12],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    }
+  ]
+}

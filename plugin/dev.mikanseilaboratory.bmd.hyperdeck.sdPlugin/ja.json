@@ -1,0 +1,205 @@
+{
+  "Name": "HyperDeck [MikanseiLaboratory]",
+  "Description": "名前を付けた複数台の HyperDeck を Stream Deck から操作します。",
+  "Category": "HyperDeck [MikanseiLaboratory]",
+  "dev.mikanseilaboratory.bmd.hyperdeck.play": {
+    "Name": "再生",
+    "Tooltip": "Play or stop. Lights while playing."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.record": {
+    "Name": "収録",
+    "Tooltip": "Record or stop. Hold to spill."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stop": {
+    "Name": "停止",
+    "Tooltip": "Stop. Lights while stopped."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.preview": {
+    "Name": "プレビュー",
+    "Tooltip": "Toggle preview."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
+    "Name": "ループ",
+    "Tooltip": "Toggle loop playback."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
+    "Name": "単一クリップ",
+    "Tooltip": "Toggle single clip playback."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
+    "Name": "スロット",
+    "Tooltip": "Select a slot."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clip": {
+    "Name": "クリップ",
+    "Tooltip": "Go to a clip. Hold to play it."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playrange": {
+    "Name": "再生範囲",
+    "Tooltip": "Set a play range. Hold to clear it."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remote": {
+    "Name": "リモート",
+    "Tooltip": "Toggle remote control."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playonstartup": {
+    "Name": "起動時再生",
+    "Tooltip": "Toggle play on startup."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stopmode": {
+    "Name": "停止モード",
+    "Tooltip": "Set the stop mode."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordtrigger": {
+    "Name": "収録トリガー",
+    "Tooltip": "Set the record trigger."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.videoinput": {
+    "Name": "映像入力",
+    "Tooltip": "Set the video input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audioinput": {
+    "Name": "音声入力",
+    "Tooltip": "Set the audio input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.fileformat": {
+    "Name": "ファイル形式",
+    "Tooltip": "Set the file format."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiocodec": {
+    "Name": "音声コーデック",
+    "Tooltip": "Set the audio codec."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeinput": {
+    "Name": "タイムコード入力",
+    "Tooltip": "Set the timecode input."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeoutput": {
+    "Name": "タイムコード出力",
+    "Tooltip": "Set the timecode output."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.dynamicrange": {
+    "Name": "ダイナミックレンジ",
+    "Tooltip": "Set a dynamic range override."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordcache": {
+    "Name": "収録キャッシュ",
+    "Tooltip": "Toggle the record cache."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.appendtimestamp": {
+    "Name": "タイムスタンプ付加",
+    "Tooltip": "Toggle appending a timestamp."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.usbspill": {
+    "Name": "USB スピル",
+    "Tooltip": "Toggle USB spill."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencesource": {
+    "Name": "リファレンス",
+    "Tooltip": "Set the reference source."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.genlock": {
+    "Name": "ゲンロック",
+    "Tooltip": "Toggle genlock resync."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.externaldrive": {
+    "Name": "外部ドライブ",
+    "Tooltip": "Select an external drive."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.nas": {
+    "Name": "NAS",
+    "Tooltip": "Add, remove, select, or deselect a NAS."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.droppedframes": {
+    "Name": "ドロップフレーム",
+    "Tooltip": "Lights when frames have been dropped."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remaining": {
+    "Name": "残り時間",
+    "Tooltip": "Lights when remaining record time is low."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencelock": {
+    "Name": "リファレンスロック",
+    "Tooltip": "Lights when reference is locked."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipstep": {
+    "Name": "クリップ送り",
+    "Tooltip": "Step to the next or previous clip."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.goto": {
+    "Name": "移動",
+    "Tooltip": "Go to a timeline, clip, or timecode."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.identify": {
+    "Name": "識別",
+    "Tooltip": "Identify the deck."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordnamed": {
+    "Name": "名前を付けて収録",
+    "Tooltip": "Start a recording with a name."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsadd": {
+    "Name": "クリップ追加",
+    "Tooltip": "Add a clip to the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsremove": {
+    "Name": "クリップ削除",
+    "Tooltip": "Remove a clip from the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsrebuild": {
+    "Name": "タイムライン再構築",
+    "Tooltip": "Rebuild the timeline."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsclear": {
+    "Name": "タイムライン消去",
+    "Tooltip": "Clear the timeline after confirmation."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slotunblock": {
+    "Name": "スロット解除",
+    "Tooltip": "Unblock a slot."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodepreset": {
+    "Name": "タイムコードプリセット",
+    "Tooltip": "Set the timecode preset."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordprefix": {
+    "Name": "収録プレフィックス",
+    "Tooltip": "Set the record prefix."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slate": {
+    "Name": "スレート",
+    "Tooltip": "Send slate metadata."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.raw": {
+    "Name": "生コマンド",
+    "Tooltip": "Send one Ethernet command."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.status": {
+    "Name": "ステータス",
+    "Tooltip": "Show one transport or device field."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.shuttle": {
+    "Name": "シャトル",
+    "Tooltip": "Shuttle speed. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.jog": {
+    "Name": "ジョグ",
+    "Tooltip": "Jog by frames. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playspeed": {
+    "Name": "再生速度",
+    "Tooltip": "Change play speed. Press to play or stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.position": {
+    "Name": "位置",
+    "Tooltip": "Move the timeline. Press to stop."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiochannels": {
+    "Name": "音声チャンネル",
+    "Tooltip": "Change audio input channels."
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
+    "Name": "生コマンドダイヤル",
+    "Tooltip": "Send a raw command for each dial gesture."
+  }
+}

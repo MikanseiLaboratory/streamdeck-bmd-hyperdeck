@@ -1,0 +1,150 @@
+html.config-root,
+html.config-root body {
+  overflow: auto;
+  height: auto;
+  min-height: 100%;
+  background: #202020;
+}
+
+.config-header {
+  background: #517a96;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+}
+
+.config-header h1 {
+  margin: 0;
+  color: #efefef;
+  font-size: 11pt;
+  font-weight: 700;
+  text-shadow: 0 0 4px #00000080;
+}
+
+.config-body {
+  padding: 8px 16px 24px;
+}
+
+.config-root .sdpi-item {
+  max-width: none;
+}
+
+.config-root .sdpi-heading {
+  margin-top: 16px;
+}
+
+.obs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.obs-card {
+  background: #2d2d2d;
+  border-radius: 8px;
+  padding: 8px 8px 12px;
+}
+
+.obs-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 8px;
+}
+
+.obs-card-head strong {
+  color: #d8d8d8;
+  font-size: 10pt;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: #8a4a3a;
+}
+
+.status-dot.connected { background: #3cba7a; }
+.status-dot.connecting { background: #e2b15a; }
+.status-dot.authFailed { background: #ef5b5b; }
+.status-dot.disabled { background: #6d7890; }
+
+.status-text {
+  margin-left: auto;
+  color: #b7b7b7;
+  font-size: 9pt;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #9a9a9a;
+  letter-spacing: -1px;
+  user-select: none;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px 0;
+}
+
+.card-actions button {
+  flex: 1;
+}
+
+.group-card {
+  background: #2d2d2d;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin: 0 6px 0 2px;
+  vertical-align: middle;
+}
+
+.caution {
+  color: #e2b15a;
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+.empty-note {
+  color: #b7b7b7;
+  margin: 8px 4px 12px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d8d8d8;
+  font-size: 9pt;
+  padding: 4px 8px;
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field.check {
+  gap: 6px;
+}
+
+.config-root textarea.sdpi-item-value {
+  height: auto;
+  min-height: 72px;
+}
+
+.targets .sdpi-item-child {
+  display: flex;
+  width: 100%;
+}

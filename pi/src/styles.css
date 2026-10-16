@@ -1,0 +1,19 @@
+.sdpi-item textarea.sdpi-item-value {
+  height: auto;
+  min-height: 72px;
+}
+
+.targets .sdpi-item-child {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin: 0 6px 0 2px;
+  vertical-align: middle;
+}
