@@ -25,6 +25,8 @@ INSTALL=1 ./publish.sh
 
 `hyperdeck-rs` is taken from the git revision in `Cargo.toml`.
 
+Tags `v0.1.0.0`, `v0.1.0.0-alpha`, `v0.1.0.0-alpha.1`, and the same forms for `beta` and `rc`, publish a GitHub Release. Alpha, beta, and rc tags are prereleases. The four-number version must match `manifest.json`.
+
 ## License
 
 [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE).
