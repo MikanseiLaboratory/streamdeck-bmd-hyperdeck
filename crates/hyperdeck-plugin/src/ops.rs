@@ -88,15 +88,13 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
         ActionKind::Clip | ActionKind::ClipStep => Face {
             active: !params.clip_id.trim().is_empty()
                 && snap.transport_value("clip id") == params.clip_id.trim(),
-            title: {
-                let name = snap.clip_name();
-                if name.is_empty() {
-                    snap.transport_value("clip id").to_string()
-                } else {
-                    name
-                }
-            },
+            title: clip_title(snap),
             indicator: 0,
+        },
+        ActionKind::ClipList => Face {
+            active: !snap.transport_value("clip id").is_empty(),
+            title: clip_title(snap),
+            indicator: clip_indicator(snap),
         },
         ActionKind::PlayRange => Face {
             active: snap.playrange_active(),
@@ -208,11 +206,14 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             title: timecode,
             indicator: 0,
         },
-        ActionKind::PlaySpeed => Face {
-            active: playing(status),
-            title: format!("{}%", snap.speed()),
-            indicator: percent_of(snap.speed().unsigned_abs().min(5000), 5000),
-        },
+        ActionKind::PlaySpeed => {
+            let speed = play_speed_percent(snap);
+            Face {
+                active: playing(status),
+                title: format_play_speed(speed),
+                indicator: percent_of(speed.unsigned_abs().min(5000), 5000),
+            }
+        }
         ActionKind::Position => Face {
             active: false,
             title: timecode,
@@ -220,15 +221,15 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
         },
         ActionKind::AudioChannels => {
             let count = snap.config_value("audio input channels");
-            let parsed: u32 = count.parse().unwrap_or(0);
+            let parsed = audio_channel_base(snap);
             Face {
                 active: false,
                 title: if count.is_empty() {
-                    "0".into()
+                    "2".into()
                 } else {
                     count.to_string()
                 },
-                indicator: percent_of(parsed, 64),
+                indicator: percent_of(parsed.unsigned_abs().min(64), 64),
             }
         }
         ActionKind::RawDial => Face {
@@ -273,6 +274,14 @@ fn press_commands(
         }
         ActionKind::Stop | ActionKind::Shuttle | ActionKind::Jog | ActionKind::Position => {
             vec![line("stop", &[])]
+        }
+        ActionKind::ClipList => {
+            let id = snap.transport_value("clip id").trim();
+            if id.is_empty() {
+                vec![line("play", &[])]
+            } else {
+                vec![line("play", &[("clip id", id)])]
+            }
         }
         ActionKind::Preview => vec![line(
             "preview",
@@ -453,8 +462,11 @@ fn rotate_commands(
             vec![line("jog", &[("timecode", &signed)])]
         }
         ActionKind::PlaySpeed => {
-            let speed = (i64::from(snap.speed()) + i64::from(delta)).clamp(-5000, 5000);
+            let speed = (i64::from(play_speed_percent(snap)) + i64::from(delta)).clamp(-5000, 5000);
             vec![line("play", &[("speed", &speed.to_string())])]
+        }
+        ActionKind::ClipList => {
+            vec![line("goto", &[("clip id", &format!("{delta:+}"))])]
         }
         ActionKind::Position => {
             let magnitude = delta.unsigned_abs().max(1);
@@ -466,10 +478,7 @@ fn rotate_commands(
             vec![line("goto", &[("timeline", &target)])]
         }
         ActionKind::AudioChannels => {
-            let current: i32 = snap
-                .config_value("audio input channels")
-                .parse()
-                .unwrap_or(0);
+            let current = audio_channel_base(snap);
             let next = (current + delta).clamp(0, 64);
             vec![line(
                 "configuration",
@@ -491,8 +500,8 @@ fn rotate_commands(
 fn touch_commands(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Vec<String> {
     match kind {
         ActionKind::RawDial => raw_line(&params.raw_touch).into_iter().collect(),
-        ActionKind::Shuttle | ActionKind::Jog | ActionKind::Position => {
-            press_commands(kind, params, snap, PressKind::Single)
+        ActionKind::Shuttle | ActionKind::Jog | ActionKind::Position | ActionKind::ClipList => {
+            press_commands(ActionKind::Stop, params, snap, PressKind::Single)
         }
         ActionKind::PlaySpeed => press_commands(kind, params, snap, PressKind::Single),
         _ => Vec::new(),
@@ -629,6 +638,48 @@ fn bool_config(key: &str, snap: &DeckSnapshot) -> Vec<String> {
     )]
 }
 
+/// Stopped decks report speed 0. The play-speed dial treats that as 1.00x.
+fn play_speed_percent(snap: &DeckSnapshot) -> i32 {
+    let speed = snap.speed();
+    if speed == 0 { 100 } else { speed }
+}
+
+fn format_play_speed(percent: i32) -> String {
+    let sign = if percent < 0 { "-" } else { "" };
+    let abs = percent.unsigned_abs();
+    format!("{sign}{}.{:02}x", abs / 100, abs % 100)
+}
+
+fn audio_channel_base(snap: &DeckSnapshot) -> i32 {
+    let count = snap.config_value("audio input channels").trim();
+    if count.is_empty() {
+        2
+    } else {
+        count.parse().unwrap_or(0)
+    }
+}
+
+fn clip_title(snap: &DeckSnapshot) -> String {
+    let name = snap.clip_name();
+    if name.is_empty() {
+        snap.transport_value("clip id").to_string()
+    } else {
+        name
+    }
+}
+
+fn clip_indicator(snap: &DeckSnapshot) -> u8 {
+    let len = u32::try_from(snap.clips.len()).unwrap_or(0);
+    if len == 0 {
+        return 0;
+    }
+    let id = snap.transport_value("clip id");
+    let Some(index) = snap.clips.iter().position(|clip| clip.id == id) else {
+        return 0;
+    };
+    percent_of(u32::try_from(index).unwrap_or(0).saturating_add(1), len)
+}
+
 fn frames_to_timecode(frames: u32) -> String {
     let fps = 30u32;
     let seconds = frames / fps;
@@ -645,7 +696,6 @@ fn step_of(kind: ActionKind, params: &ActionParams) -> i32 {
     }
     match kind {
         ActionKind::Shuttle => 100,
-        ActionKind::PlaySpeed => 10,
         ActionKind::AudioChannels => 2,
         _ => 1,
     }
@@ -902,6 +952,71 @@ mod tests {
         let face = face(ActionKind::Shuttle, &params, &snap);
         assert_eq!(face.title, "100%");
         assert_eq!(face.indicator, 2);
+    }
+
+    #[test]
+    fn stopped_play_speed_starts_at_one_x() {
+        let snap = snap_status("stopped", "0");
+        let params = ActionParams::default();
+        let shown = face(ActionKind::PlaySpeed, &params, &snap);
+        assert_eq!(shown.title, "1.00x");
+        let sent = commands(ActionKind::PlaySpeed, &params, &snap, Gesture::Rotate(1));
+        assert_eq!(sent, vec!["play: speed: 101\r\n".to_string()]);
+        let playing = snap_status("play", "200");
+        let shown = face(ActionKind::PlaySpeed, &params, &playing);
+        assert_eq!(shown.title, "2.00x");
+    }
+
+    #[test]
+    fn clip_list_steps_and_plays_the_current_clip() {
+        let mut snap = DeckSnapshot::default();
+        snap.transport.insert("clip id".into(), "3".into());
+        snap.clips = vec![
+            hyperdeck_pool::ClipRow {
+                id: "1".into(),
+                name: "slate".into(),
+            },
+            hyperdeck_pool::ClipRow {
+                id: "3".into(),
+                name: "interview".into(),
+            },
+        ];
+        let params = ActionParams::default();
+        let sent = commands(ActionKind::ClipList, &params, &snap, Gesture::Rotate(2));
+        assert_eq!(sent, vec!["goto: clip id: +2\r\n".to_string()]);
+        let back = commands(ActionKind::ClipList, &params, &snap, Gesture::Rotate(-1));
+        assert_eq!(back, vec!["goto: clip id: -1\r\n".to_string()]);
+        let play = commands(
+            ActionKind::ClipList,
+            &params,
+            &snap,
+            Gesture::Press(PressKind::Single),
+        );
+        assert_eq!(play, vec!["play: clip id: 3\r\n".to_string()]);
+        let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
+        assert_eq!(stop, vec!["stop\r\n".to_string()]);
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(shown.title, "interview");
+        assert_eq!(shown.indicator, 100);
+    }
+
+    #[test]
+    fn empty_audio_channels_start_at_two() {
+        let snap = DeckSnapshot::default();
+        let params = ActionParams::default();
+        let shown = face(ActionKind::AudioChannels, &params, &snap);
+        assert_eq!(shown.title, "2");
+        let sent = commands(
+            ActionKind::AudioChannels,
+            &params,
+            &snap,
+            Gesture::Rotate(1),
+        );
+        assert_eq!(
+            sent,
+            vec!["configuration: audio input channels: 4\r\n".to_string()]
+        );
+        assert_eq!(ActionParams::default().range_count, "1");
     }
 
     #[test]

@@ -193,6 +193,7 @@ fn icon_path(kind: ActionKind) -> &'static str {
         }
         ActionKind::Clip
         | ActionKind::ClipStep
+        | ActionKind::ClipList
         | ActionKind::ClipsAdd
         | ActionKind::ClipsRemove
         | ActionKind::ClipsRebuild

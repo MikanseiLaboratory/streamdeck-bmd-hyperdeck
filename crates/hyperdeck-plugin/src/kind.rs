@@ -47,6 +47,7 @@ pub enum ActionKind {
     Status,
     Shuttle,
     Jog,
+    ClipList,
     PlaySpeed,
     Position,
     AudioChannels,
@@ -103,6 +104,7 @@ impl ActionKind {
             Self::Status => "dev.mikanseilaboratory.bmd.hyperdeck.status",
             Self::Shuttle => "dev.mikanseilaboratory.bmd.hyperdeck.shuttle",
             Self::Jog => "dev.mikanseilaboratory.bmd.hyperdeck.jog",
+            Self::ClipList => "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
             Self::PlaySpeed => "dev.mikanseilaboratory.bmd.hyperdeck.playspeed",
             Self::Position => "dev.mikanseilaboratory.bmd.hyperdeck.position",
             Self::AudioChannels => "dev.mikanseilaboratory.bmd.hyperdeck.audiochannels",
@@ -130,6 +132,7 @@ impl ActionKind {
                 | Self::Status
                 | Self::Shuttle
                 | Self::Jog
+                | Self::ClipList
                 | Self::PlaySpeed
                 | Self::Position
                 | Self::AudioChannels
@@ -163,6 +166,7 @@ impl ActionKind {
             self,
             Self::Shuttle
                 | Self::Jog
+                | Self::ClipList
                 | Self::PlaySpeed
                 | Self::Position
                 | Self::AudioChannels
@@ -175,6 +179,7 @@ impl ActionKind {
         match self {
             Self::Shuttle => "Shuttle",
             Self::Jog => "Jog",
+            Self::ClipList => "Clip",
             Self::PlaySpeed => "Speed",
             Self::Position => "Position",
             Self::AudioChannels => "Channels",

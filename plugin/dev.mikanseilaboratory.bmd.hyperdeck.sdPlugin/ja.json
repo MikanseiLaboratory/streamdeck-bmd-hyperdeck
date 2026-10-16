@@ -198,6 +198,10 @@
     "Name": "音声チャンネル",
     "Tooltip": "Change audio input channels."
   },
+  "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
+    "Name": "クリップリスト",
+    "Tooltip": "Move through the clip list. Press to play. Touch to stop."
+  },
   "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
     "Name": "生コマンドダイヤル",
     "Tooltip": "Send a raw command for each dial gesture."

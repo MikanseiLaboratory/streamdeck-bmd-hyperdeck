@@ -75,6 +75,26 @@ const actionDefaults: Settings = {
 
 const LONG_PRESS = new Set(["record", "playrange", "clip"]);
 
+const DIALS = new Set([
+  "shuttle",
+  "jog",
+  "cliplist",
+  "playspeed",
+  "position",
+  "audiochannels",
+  "rawdial"
+]);
+
+function defaultStep(kind: string): number {
+  if (kind === "shuttle") {
+    return 100;
+  }
+  if (kind === "audiochannels") {
+    return 2;
+  }
+  return 1;
+}
+
 export function App() {
   const deck = useStreamDeck();
   const kind = deck.actionInfo?.action.split(".").at(-1) ?? "play";
@@ -457,8 +477,12 @@ function Fields({
         />
       )}
       {kind === "raw" && <AreaRow label="Command" value={params.raw} onChange={(raw) => update({ raw })} />}
-      {["shuttle", "jog", "playspeed", "position", "audiochannels"].includes(kind) && (
-        <NumberRow label="Step" value={params.step} onChange={(step) => update({ step })} />
+      {["shuttle", "jog", "cliplist", "playspeed", "position", "audiochannels"].includes(kind) && (
+        <NumberRow
+          label="Step"
+          value={params.step === 0 ? defaultStep(kind) : params.step}
+          onChange={(step) => update({ step: step === defaultStep(kind) ? 0 : step })}
+        />
       )}
       {kind === "rawdial" && (
         <>
@@ -481,7 +505,7 @@ function Fields({
           }
         />
       )}
-      {!kind.endsWith("dial") && kind !== "shuttle" && kind !== "jog" && kind !== "playspeed" && kind !== "position" && kind !== "audiochannels" && (
+      {!DIALS.has(kind) && (
         <div className="sdpi-item">
           <div className="sdpi-item-label">Active</div>
           <input

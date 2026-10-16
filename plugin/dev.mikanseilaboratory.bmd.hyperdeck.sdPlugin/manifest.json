@@ -892,6 +892,29 @@
       }
     },
     {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
+      "Name": "Clip List",
+      "Icon": "images/icon",
+      "Tooltip": "Move through the clip list. Press to play. Touch to stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Rotate": "Clip List",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.rawdial",
       "Name": "Raw Dial",
       "Icon": "images/icon",

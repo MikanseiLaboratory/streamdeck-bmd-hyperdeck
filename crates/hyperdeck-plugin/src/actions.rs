@@ -429,6 +429,11 @@ hyperdeck_dial!(
     ActionKind::Jog
 );
 hyperdeck_dial!(
+    ClipListDial,
+    "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
+    ActionKind::ClipList
+);
+hyperdeck_dial!(
     PlaySpeedDial,
     "dev.mikanseilaboratory.bmd.hyperdeck.playspeed",
     ActionKind::PlaySpeed
@@ -498,6 +503,7 @@ pub fn force_link() {
         std::any::TypeId::of::<StatusAction>(),
         std::any::TypeId::of::<ShuttleDial>(),
         std::any::TypeId::of::<JogDial>(),
+        std::any::TypeId::of::<ClipListDial>(),
         std::any::TypeId::of::<PlaySpeedDial>(),
         std::any::TypeId::of::<PositionDial>(),
         std::any::TypeId::of::<AudioChannelsDial>(),

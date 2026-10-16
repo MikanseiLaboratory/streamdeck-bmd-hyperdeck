@@ -207,7 +207,7 @@ pub struct ActionParams {
     pub clip_id: String,
     #[serde(default)]
     pub command_mode: String,
-    #[serde(default)]
+    #[serde(default = "default_range_count")]
     pub range_count: String,
     #[serde(default)]
     pub range_in: String,
@@ -281,6 +281,10 @@ fn default_direction() -> String {
     "next".into()
 }
 
+fn default_range_count() -> String {
+    "1".into()
+}
+
 impl Default for ActionParams {
     fn default() -> Self {
         Self {
@@ -292,7 +296,7 @@ impl Default for ActionParams {
             device: String::new(),
             clip_id: String::new(),
             command_mode: String::new(),
-            range_count: String::new(),
+            range_count: default_range_count(),
             range_in: String::new(),
             range_out: String::new(),
             goto_mode: default_goto(),
