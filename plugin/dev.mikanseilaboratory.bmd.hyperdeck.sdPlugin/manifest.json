@@ -1,0 +1,1103 @@
+{
+  "UUID": "dev.mikanseilaboratory.bmd.hyperdeck",
+  "Name": "HyperDeck [MikanseiLaboratory]",
+  "Author": "未完成成果物研究所",
+  "Description": "Control any number of named HyperDeck decks from Stream Deck.",
+  "Version": "0.1.0.0",
+  "Icon": "images/icon",
+  "Category": "HyperDeck [MikanseiLaboratory]",
+  "CategoryIcon": "images/icon",
+  "CodePath": "bin/plugin",
+  "CodePathWin": "bin/plugin.exe",
+  "CodePathMac": "bin/plugin",
+  "PropertyInspectorPath": "propertyinspector/index.html",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.4"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.15"
+    }
+  ],
+  "Actions": [
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.play",
+      "Name": "Play",
+      "Icon": "images/icon",
+      "Tooltip": "Play or stop. Lights while playing.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.record",
+      "Name": "Record",
+      "Icon": "images/icon",
+      "Tooltip": "Record or stop. Hold to spill.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.stop",
+      "Name": "Stop",
+      "Icon": "images/icon",
+      "Tooltip": "Stop. Lights while stopped.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.preview",
+      "Name": "Preview",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle preview.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.loop",
+      "Name": "Loop",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle loop playback.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.singleclip",
+      "Name": "Single Clip",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle single clip playback.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.slot",
+      "Name": "Slot",
+      "Icon": "images/icon",
+      "Tooltip": "Select a slot.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clip",
+      "Name": "Clip",
+      "Icon": "images/icon",
+      "Tooltip": "Go to a timeline clip by number. Shows the current clip name. Hold to play it.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.playrange",
+      "Name": "Play Range",
+      "Icon": "images/icon",
+      "Tooltip": "Set a play range. Hold to clear it.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.remote",
+      "Name": "Remote",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle remote control.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.playonstartup",
+      "Name": "Play On Startup",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle play on startup.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.stopmode",
+      "Name": "Stop Mode",
+      "Icon": "images/icon",
+      "Tooltip": "Set the stop mode.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.recordtrigger",
+      "Name": "Record Trigger",
+      "Icon": "images/icon",
+      "Tooltip": "Set the record trigger.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.videoinput",
+      "Name": "Video Input",
+      "Icon": "images/icon",
+      "Tooltip": "Set the video input.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.audioinput",
+      "Name": "Audio Input",
+      "Icon": "images/icon",
+      "Tooltip": "Set the audio input.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.fileformat",
+      "Name": "File Format",
+      "Icon": "images/icon",
+      "Tooltip": "Set the file format.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.audiocodec",
+      "Name": "Audio Codec",
+      "Icon": "images/icon",
+      "Tooltip": "Set the audio codec.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.timecodeinput",
+      "Name": "Timecode Input",
+      "Icon": "images/icon",
+      "Tooltip": "Set the timecode input.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.timecodeoutput",
+      "Name": "Timecode Output",
+      "Icon": "images/icon",
+      "Tooltip": "Set the timecode output.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.dynamicrange",
+      "Name": "Dynamic Range",
+      "Icon": "images/icon",
+      "Tooltip": "Set a dynamic range override.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.recordcache",
+      "Name": "Record Cache",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle the record cache.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.appendtimestamp",
+      "Name": "Append Timestamp",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle appending a timestamp.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.usbspill",
+      "Name": "USB Spill",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle USB spill.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.referencesource",
+      "Name": "Reference Source",
+      "Icon": "images/icon",
+      "Tooltip": "Set the reference source.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.genlock",
+      "Name": "Genlock",
+      "Icon": "images/icon",
+      "Tooltip": "Toggle genlock resync.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.externaldrive",
+      "Name": "External Drive",
+      "Icon": "images/icon",
+      "Tooltip": "Select an external drive.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.nas",
+      "Name": "NAS",
+      "Icon": "images/icon",
+      "Tooltip": "Add, remove, select, or deselect a NAS.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.droppedframes",
+      "Name": "Dropped Frames",
+      "Icon": "images/icon",
+      "Tooltip": "Lights when frames have been dropped.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.remaining",
+      "Name": "Remaining",
+      "Icon": "images/icon",
+      "Tooltip": "Lights when remaining record time is low.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.referencelock",
+      "Name": "Reference Lock",
+      "Icon": "images/icon",
+      "Tooltip": "Lights when reference is locked.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clipstep",
+      "Name": "Clip Step",
+      "Icon": "images/icon",
+      "Tooltip": "Step to the next or previous clip.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.goto",
+      "Name": "Go To",
+      "Icon": "images/icon",
+      "Tooltip": "Go to a timeline, clip, or timecode.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.identify",
+      "Name": "Identify",
+      "Icon": "images/icon",
+      "Tooltip": "Identify the deck.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.recordnamed",
+      "Name": "Record Named",
+      "Icon": "images/icon",
+      "Tooltip": "Start a recording with a name.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clipsadd",
+      "Name": "Clips Add",
+      "Icon": "images/icon",
+      "Tooltip": "Add a clip to the timeline.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clipsremove",
+      "Name": "Clips Remove",
+      "Icon": "images/icon",
+      "Tooltip": "Remove a clip from the timeline.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clipsrebuild",
+      "Name": "Clips Rebuild",
+      "Icon": "images/icon",
+      "Tooltip": "Rebuild the timeline.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.clipsclear",
+      "Name": "Clips Clear",
+      "Icon": "images/icon",
+      "Tooltip": "Clear the timeline after confirmation.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.slotunblock",
+      "Name": "Slot Unblock",
+      "Icon": "images/icon",
+      "Tooltip": "Unblock a slot.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.timecodepreset",
+      "Name": "Timecode Preset",
+      "Icon": "images/icon",
+      "Tooltip": "Set the timecode preset.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.recordprefix",
+      "Name": "Record Prefix",
+      "Icon": "images/icon",
+      "Tooltip": "Set the record prefix.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.slate",
+      "Name": "Slate",
+      "Icon": "images/icon",
+      "Tooltip": "Send slate metadata.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.raw",
+      "Name": "Raw",
+      "Icon": "images/icon",
+      "Tooltip": "Send one Ethernet command.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.status",
+      "Name": "Status",
+      "Icon": "images/icon",
+      "Tooltip": "Show one transport or device field.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Keypad"
+      ]
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.shuttle",
+      "Name": "Shuttle",
+      "Icon": "images/icon",
+      "Tooltip": "Shuttle speed. Press to stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Shuttle",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.jog",
+      "Name": "Jog",
+      "Icon": "images/icon",
+      "Tooltip": "Jog by frames. Press to stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Jog",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.playspeed",
+      "Name": "Play Speed",
+      "Icon": "images/icon",
+      "Tooltip": "Change play speed. Press to play or stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Play Speed",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.position",
+      "Name": "Position",
+      "Icon": "images/icon",
+      "Tooltip": "Move the timeline. Press to stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Position",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.audiochannels",
+      "Name": "Audio Channels",
+      "Icon": "images/icon",
+      "Tooltip": "Change audio input channels.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Audio Channels",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
+      "Name": "Clip List",
+      "Icon": "images/icon",
+      "Tooltip": "Shows the current clip name. Rotate to another clip. Press to play. Touch to stop.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Clip List",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    },
+    {
+      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.rawdial",
+      "Name": "Raw Dial",
+      "Icon": "images/icon",
+      "Tooltip": "Send a raw command for each dial gesture.",
+      "PropertyInspectorPath": "propertyinspector/index.html",
+      "States": [
+        {
+          "Image": "images/icon",
+          "FontSize": 11,
+          "TitleAlignment": "bottom"
+        }
+      ],
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "dev.mikanseilaboratory.bmd.hyperdeck.dial",
+        "TriggerDescription": {
+          "Rotate": "Raw Dial",
+          "Push": "Press",
+          "Touch": "Touch"
+        }
+      }
+    }
+  ]
+}

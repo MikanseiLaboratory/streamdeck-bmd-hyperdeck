@@ -1,0 +1,209 @@
+{
+  "Name": "HyperDeck [MikanseiLaboratory]",
+  "Description": "Stream Deckから複数のHyperDeckを一括・個別コントロールします。",
+  "Category": "HyperDeck [MikanseiLaboratory]",
+  "dev.mikanseilaboratory.bmd.hyperdeck.play": {
+    "Name": "再生",
+    "Tooltip": "再生／停止（再生中は点灯）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.record": {
+    "Name": "収録",
+    "Tooltip": "収録／停止（長押しでスピル収録）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stop": {
+    "Name": "停止",
+    "Tooltip": "停止（停止中は点灯）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.preview": {
+    "Name": "プレビュー",
+    "Tooltip": "プレビュー表示の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
+    "Name": "ループ",
+    "Tooltip": "ループ再生の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
+    "Name": "シングルクリップ",
+    "Tooltip": "単一クリップ再生の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
+    "Name": "スロット",
+    "Tooltip": "アクティブスロットの選択"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clip": {
+    "Name": "クリップジャンプ",
+    "Tooltip": "指定クリップへ移動（長押しで再生）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playrange": {
+    "Name": "再生範囲",
+    "Tooltip": "再生範囲の設定（長押しで解除）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remote": {
+    "Name": "リモート制御",
+    "Tooltip": "リモート制御の有効／無効"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playonstartup": {
+    "Name": "起動時再生",
+    "Tooltip": "起動時再生の有効／無効"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.stopmode": {
+    "Name": "停止モード",
+    "Tooltip": "停止時モード（最終フレーム/次フレーム/黒画面）の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordtrigger": {
+    "Name": "収録トリガー",
+    "Tooltip": "収録トリガー（None/Record Bit/Timecode Run）の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.videoinput": {
+    "Name": "映像入力",
+    "Tooltip": "映像入力ソースの切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audioinput": {
+    "Name": "音声入力",
+    "Tooltip": "音声入力ソースの切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.fileformat": {
+    "Name": "ファイル形式",
+    "Tooltip": "収録ファイル形式の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiocodec": {
+    "Name": "音声コーデック",
+    "Tooltip": "音声コーデックの設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeinput": {
+    "Name": "TC入力",
+    "Tooltip": "タイムコード入力の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodeoutput": {
+    "Name": "TC出力",
+    "Tooltip": "タイムコード出力の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.dynamicrange": {
+    "Name": "ダイナミックレンジ",
+    "Tooltip": "ダイナミックレンジ（HDR/HLG/SDR等）の設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordcache": {
+    "Name": "収録キャッシュ",
+    "Tooltip": "収録キャッシュの有効／無効"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.appendtimestamp": {
+    "Name": "タイムスタンプ付加",
+    "Tooltip": "ファイル名への日時付加設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.usbspill": {
+    "Name": "USBスピル",
+    "Tooltip": "USBスピルオーバーの有効／無効"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencesource": {
+    "Name": "リファレンス信号",
+    "Tooltip": "リファレンス信号源の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.genlock": {
+    "Name": "ゲンロック同期",
+    "Tooltip": "ゲンロック同期の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.externaldrive": {
+    "Name": "外部ドライブ",
+    "Tooltip": "外部ドライブの選択"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.nas": {
+    "Name": "NAS",
+    "Tooltip": "NASストレージの管理・選択"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.droppedframes": {
+    "Name": "ドロップフレーム警告",
+    "Tooltip": "コマ落ち発生時に点灯"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.remaining": {
+    "Name": "残り時間警告",
+    "Tooltip": "メディア残量低下時に点灯"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.referencelock": {
+    "Name": "リファレンスロック",
+    "Tooltip": "リファレンス同期時に点灯"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipstep": {
+    "Name": "クリップ送り／戻し",
+    "Tooltip": "前後のクリップへスキップ"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.goto": {
+    "Name": "位置ジャンプ",
+    "Tooltip": "タイムライン／タイムコード指定位置へ移動"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.identify": {
+    "Name": "本体識別",
+    "Tooltip": "本体インジケーターを点滅表示"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordnamed": {
+    "Name": "名前指定収録",
+    "Tooltip": "ファイル名を指定して収録開始"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsadd": {
+    "Name": "クリップ追加",
+    "Tooltip": "タイムラインにクリップを追加"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsremove": {
+    "Name": "クリップ削除",
+    "Tooltip": "タイムラインからクリップを削除"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsrebuild": {
+    "Name": "タイムライン再構築",
+    "Tooltip": "タイムラインを再構築"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.clipsclear": {
+    "Name": "タイムライン全消去",
+    "Tooltip": "確認後にタイムラインを全消去"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slotunblock": {
+    "Name": "スロット解除",
+    "Tooltip": "スロットのブロックを解除"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.timecodepreset": {
+    "Name": "TCプリセット",
+    "Tooltip": "タイムコードプリセット値を設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.recordprefix": {
+    "Name": "接頭辞設定",
+    "Tooltip": "収録ファイル名の接頭辞を設定"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.slate": {
+    "Name": "スレート送信",
+    "Tooltip": "スレート情報（リール・シーン・テイク）を送信"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.raw": {
+    "Name": "Rawコマンド",
+    "Tooltip": "Ethernetプロトコルコマンドを直接送信"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.status": {
+    "Name": "ステータス表示",
+    "Tooltip": "再生状態やデバイス情報を表示"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.shuttle": {
+    "Name": "シャトル",
+    "Tooltip": "シャトル再生（押し込みで停止）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.jog": {
+    "Name": "ジョグ",
+    "Tooltip": "フレーム単位のジョグ送り（押し込みで停止）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.playspeed": {
+    "Name": "再生速度",
+    "Tooltip": "再生速度の調整（押し込みで再生／停止）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.position": {
+    "Name": "タイムライン位置",
+    "Tooltip": "タイムライン位置の移動（押し込みで停止）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.audiochannels": {
+    "Name": "音声チャンネル数",
+    "Tooltip": "音声入力チャンネル数の切り替え"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
+    "Name": "クリップ選択",
+    "Tooltip": "クリップ一覧を前後に移動（押し込みで再生、タッチで停止）"
+  },
+  "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
+    "Name": "Rawコマンドダイヤル",
+    "Tooltip": "ダイヤル操作に応じたコマンドを送信"
+  }
+}

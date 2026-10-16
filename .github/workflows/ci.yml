@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: cargo test --workspace
+      - run: cargo run -p hyperdeck-plugin --bin typegen
+      - run: npm ci
+        working-directory: pi
+      - run: npm run build
+        working-directory: pi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: property-inspector
+          path: plugin/dev.mikanseilaboratory.bmd.hyperdeck.sdPlugin/propertyinspector
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: win-x64
+            binary: plugin.exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: osx-arm64
+            binary: plugin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: osx-x64
+            binary: plugin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build -p hyperdeck-plugin --release --bin plugin --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: target/${{ matrix.target }}/release/${{ matrix.binary }}
+
+  package:
+    needs: [test, build]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          path: build
+      - name: Assemble plugin
+        run: |
+          set -euo pipefail
+          plugin="plugin/dev.mikanseilaboratory.bmd.hyperdeck.sdPlugin"
+          mkdir -p "$plugin/bin"
+          cp "build/win-x64/plugin.exe" "$plugin/bin/plugin.exe"
+          lipo -create \
+            "build/osx-arm64/plugin" \
+            "build/osx-x64/plugin" \
+            -output "$plugin/bin/plugin"
+          chmod +x "$plugin/bin/plugin"
+          rm -rf "$plugin/propertyinspector"
+          cp -R build/property-inspector/. "$plugin/propertyinspector/"
+      - name: Install Stream Deck CLI
+        run: npm install -g @elgato/cli@1.9.0
+      - name: Pack plugin
+        run: |
+          set -euo pipefail
+          version="$(jq -r .Version plugin/dev.mikanseilaboratory.bmd.hyperdeck.sdPlugin/manifest.json)"
+          mkdir -p dist
+          streamdeck pack \
+            --no-update-check \
+            --force \
+            --output dist \
+            --version "$version" \
+            plugin/dev.mikanseilaboratory.bmd.hyperdeck.sdPlugin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamDeckPlugin
+          path: dist/*.streamDeckPlugin

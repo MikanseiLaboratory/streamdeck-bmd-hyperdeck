@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["crates/hyperdeck-pool", "crates/hyperdeck-plugin"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+authors = ["Mikansei Laboratory"]
+repository = "https://github.com/MikanseiLaboratory/streamdeck-bmd-hyperdeck"
+
+[workspace.dependencies]
+hyperdeck-tokio = { git = "https://github.com/MikanseiLaboratory/hyperdeck-rs", rev = "d01e592620673a2980a0167c5a1b05b439985451" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tracing = "0.1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
