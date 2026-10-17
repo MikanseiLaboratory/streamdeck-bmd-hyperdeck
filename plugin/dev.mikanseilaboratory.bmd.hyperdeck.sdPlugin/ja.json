@@ -200,7 +200,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
     "Name": "クリップ選択",
-    "Tooltip": "クリップ一覧を前後に移動（押し込みで再生、タッチで停止）"
+    "Tooltip": "現在のファイル名とタイムコードを表示。前後のクリップへ移動（押し込みで再生、タッチで停止）"
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
     "Name": "Rawコマンドダイヤル",

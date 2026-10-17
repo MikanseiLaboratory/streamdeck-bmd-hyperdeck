@@ -675,9 +675,14 @@ fn clip_title(snap: &DeckSnapshot) -> String {
     }
 }
 
-/// Dial caption: timeline number, then the clip name, split by a record separator.
+/// Dial caption: clip id, file name, and display timecode, split by a record separator.
 fn clip_list_caption(snap: &DeckSnapshot) -> String {
-    format!("{}\u{1e}{}", current_clip_id(snap), snap.clip_name())
+    format!(
+        "{}\u{1e}{}\u{1e}{}",
+        current_clip_id(snap),
+        snap.clip_name(),
+        display_timecode(snap)
+    )
 }
 
 fn clip_indicator(snap: &DeckSnapshot) -> u8 {
@@ -1125,6 +1130,8 @@ mod tests {
     fn clip_list_steps_and_plays_the_current_clip() {
         let mut snap = DeckSnapshot::default();
         snap.transport.insert("clip id".into(), "3".into());
+        snap.transport
+            .insert("display timecode".into(), "01:02:03:04".into());
         snap.clips = vec![
             hyperdeck_pool::ClipRow {
                 id: "1".into(),
@@ -1150,7 +1157,7 @@ mod tests {
         let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
         assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "3\u{1e}interview");
+        assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03:04");
         assert_eq!(shown.indicator, 100);
     }
 

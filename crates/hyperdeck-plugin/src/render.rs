@@ -118,7 +118,8 @@ pub fn dial_feedback(
             .take(4)
             .map(|caption| {
                 if kind == ActionKind::ClipList {
-                    dial_text(kind, caption).0
+                    let (name, timecode) = dial_text(kind, caption);
+                    clip_line(&name, &timecode)
                 } else {
                     caption.clone()
                 }
@@ -139,7 +140,10 @@ pub fn dial_feedback(
 
 fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
     if kind == ActionKind::ClipList {
-        let (id, name) = caption.split_once('\u{1e}').unwrap_or(("", caption));
+        let mut parts = caption.split('\u{1e}');
+        let id = parts.next().unwrap_or("");
+        let name = parts.next().unwrap_or("");
+        let timecode = parts.next().unwrap_or("");
         let title = if !name.is_empty() {
             name.to_string()
         } else if !id.is_empty() {
@@ -147,14 +151,18 @@ fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
         } else {
             kind.dial_heading().to_string()
         };
-        let value = if id.is_empty() {
-            String::new()
-        } else {
-            id.to_string()
-        };
-        return (title, value);
+        return (title, timecode.to_string());
     }
     (kind.dial_heading().to_string(), caption.to_string())
+}
+
+fn clip_line(name: &str, timecode: &str) -> String {
+    match (name.is_empty(), timecode.is_empty()) {
+        (false, false) => format!("{name} {timecode}"),
+        (false, true) => name.to_string(),
+        (true, false) => timecode.to_string(),
+        (true, true) => String::new(),
+    }
 }
 
 fn indicator(segment: Option<&Segment>, level: u8) -> Value {
@@ -321,12 +329,28 @@ mod tests {
         let (layout, payload) = dial_feedback(
             ActionKind::ClipList,
             std::slice::from_ref(&one),
-            &["3\u{1e}interview".into()],
+            &["3\u{1e}interview.mov\u{1e}01:02:03:04".into()],
             &[100],
             "#f4f7fb",
         );
         assert_eq!(layout, LAYOUT_DIAL);
-        assert_eq!(payload["title"], "interview");
-        assert_eq!(payload["value"], "3");
+        assert_eq!(payload["title"], "interview.mov");
+        assert_eq!(payload["value"], "01:02:03:04");
+
+        let (layout, payload) = dial_feedback(
+            ActionKind::ClipList,
+            &two,
+            &[
+                "3\u{1e}interview.mov\u{1e}01:02:03".into(),
+                "1\u{1e}slate.mov\u{1e}00:10:00".into(),
+            ],
+            &[100, 50],
+            "#f4f7fb",
+        );
+        assert_eq!(layout, LAYOUT_MULTI);
+        assert_eq!(
+            payload["title"],
+            "interview.mov 01:02:03 · slate.mov 00:10:00"
+        );
     }
 }
