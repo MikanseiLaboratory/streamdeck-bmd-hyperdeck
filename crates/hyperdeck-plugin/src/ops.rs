@@ -155,11 +155,12 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             indicator: 0,
         },
         ActionKind::Remaining => {
-            let seconds = recording_seconds(snap);
+            let raw = snap.slot_value("recording time");
+            let seconds = recording_seconds(raw);
             let threshold = params.threshold_seconds;
             Face {
                 active: seconds > 0 && seconds <= u64::from(threshold),
-                title: format!("{seconds}s {}", snap.slot_value("remaining size")),
+                title: remaining_title(raw, snap.slot_value("remaining size")),
                 indicator: 0,
             }
         }
@@ -903,13 +904,29 @@ fn recording_time(snap: &DeckSnapshot) -> String {
     }
 }
 
-fn recording_seconds(snap: &DeckSnapshot) -> u64 {
-    snap.slot_value("recording time")
-        .split_whitespace()
+fn recording_seconds(raw: &str) -> u64 {
+    raw.split_whitespace()
         .next()
         .unwrap_or("")
         .parse()
         .unwrap_or(0)
+}
+
+/// Recording time and remaining size, using only the strings the deck sent.
+fn remaining_title(recording_time: &str, remaining_size: &str) -> String {
+    let time = if recording_time.is_empty() {
+        String::new()
+    } else if recording_time.bytes().all(|byte| byte.is_ascii_digit()) {
+        format!("{recording_time}s")
+    } else {
+        short_timecode(recording_time)
+    };
+    match (time.is_empty(), remaining_size.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => time,
+        (true, false) => remaining_size.to_string(),
+        (false, false) => format!("{time} {remaining_size}"),
+    }
 }
 
 fn playrange_title(snap: &DeckSnapshot) -> String {
@@ -996,6 +1013,33 @@ mod tests {
         snap.transport
             .insert("display timecode".into(), "01:00:00:00".into());
         snap
+    }
+
+    #[test]
+    fn remaining_title_uses_the_recording_time_the_deck_sent() {
+        let params = ActionParams::default();
+        let mut snap = DeckSnapshot::default();
+        snap.slot.insert("recording time".into(), "3600".into());
+        snap.slot.insert("remaining size".into(), "1000".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "3600s 1000");
+        assert!(!shown.active);
+
+        snap.slot.insert("recording time".into(), "30".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "30s 1000");
+        assert!(shown.active);
+
+        snap.slot
+            .insert("recording time".into(), "00:01:02:03".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "01:02:03 1000");
+        assert!(!shown.active);
+
+        snap.slot.remove("recording time");
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "1000");
+        assert!(!shown.active);
     }
 
     #[test]

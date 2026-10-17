@@ -108,7 +108,7 @@ impl DeckSnapshot {
             merge_map(&mut self.transport, message);
         }
         if message.code == 202 || message.code == 502 || text.contains("slot info") {
-            replace_map(&mut self.slot, message);
+            apply_slot(&mut self.slot, message);
         }
         if message.code == 211
             || message.code == 511
@@ -167,6 +167,32 @@ fn replace_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     }
     map.clear();
     merge_map(map, message);
+}
+
+/// `202 slot info` replaces the slot. A `502` notice only carries the fields
+/// the deck included, so an omitted recording time stays at the last value.
+fn apply_slot(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
+    if message.params.is_empty() {
+        return;
+    }
+    if message.code == 202 {
+        replace_map(map, message);
+        return;
+    }
+    merge_map(map, message);
+    let status = message.get("status").unwrap_or("");
+    if matches!(status, "empty" | "mounting" | "error") {
+        for key in [
+            "recording time",
+            "remaining size",
+            "total size",
+            "volume name",
+        ] {
+            if message.get(key).is_none() {
+                map.remove(key);
+            }
+        }
+    }
 }
 
 fn merge_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
@@ -303,5 +329,98 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.clips[0].name, "folder/My Clip.mov");
+    }
+
+    #[test]
+    fn slot_notice_keeps_recording_time_the_deck_already_sent() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "mounted".into()),
+                ("volume name".into(), "Media".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "3600");
+        assert_eq!(snapshot.slot_value("remaining size"), "1000");
+        assert_eq!(snapshot.slot_value("volume name"), "Media");
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![("recording time".into(), "3599".into())],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "3599");
+        assert_eq!(snapshot.slot_value("remaining size"), "1000");
+    }
+
+    #[test]
+    fn empty_slot_notice_drops_the_previous_recording_time() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+                ("volume name".into(), "Media".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "empty".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "");
+        assert_eq!(snapshot.slot_value("remaining size"), "");
+        assert_eq!(snapshot.slot_value("volume name"), "");
+        assert_eq!(snapshot.slot_value("status"), "empty");
+    }
+
+    #[test]
+    fn slot_query_replaces_the_previous_slot() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "2".into()),
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "10".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "10");
+        assert_eq!(snapshot.slot_value("remaining size"), "");
+        assert_eq!(snapshot.slot_value("slot id"), "2");
     }
 }

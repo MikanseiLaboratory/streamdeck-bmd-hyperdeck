@@ -26,6 +26,17 @@ struct LiveKey {
     multi: bool,
     /// Layout last accepted by Stream Deck. Sent again only when it changes.
     layout: String,
+    /// Picture last accepted by Stream Deck. Unchanged faces are not sent again.
+    sent: SentFace,
+}
+
+/// Last `setImage` / `setTitle` / `setState` / `setFeedback` accepted for one key.
+#[derive(Clone, Debug, Default)]
+struct SentFace {
+    image: Option<String>,
+    title: Option<String>,
+    state: Option<i32>,
+    feedback: Option<Value>,
 }
 
 struct Runtime {
@@ -134,6 +145,7 @@ impl AppState {
                 settings,
                 multi,
                 layout: String::new(),
+                sent: SentFace::default(),
             },
         );
         self.refresh_key(context).await;
@@ -349,7 +361,7 @@ impl AppState {
         let Some(sender) = self.runtime.sender.lock().await.clone() else {
             return;
         };
-        let (kind, settings, multi, sent_layout) = {
+        let (kind, settings, multi, sent_layout, sent) = {
             let keys = self.runtime.keys.lock().await;
             let Some(key) = keys.get(context) else {
                 return;
@@ -359,6 +371,7 @@ impl AppState {
                 key.settings.clone(),
                 key.multi,
                 key.layout.clone(),
+                key.sent.clone(),
             )
         };
         let global = self.runtime.global.lock().await.clone();
@@ -394,23 +407,55 @@ impl AppState {
         if kind.is_dial() {
             let (layout, payload) =
                 render::dial_feedback(kind, &visual, &captions, &levels, &global.fg_color);
+            let mut previous_feedback = sent.feedback;
             if sent_layout != layout
                 && sender.set_feedback_layout(context, &layout).is_ok()
                 && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
             {
                 key.layout = layout;
+                key.sent.feedback = None;
+                previous_feedback = None;
             }
-            let _ = sender.set_feedback(context, &payload);
+            let delta = feedback_delta(previous_feedback.as_ref(), &payload);
+            if !feedback_is_blank(&delta)
+                && sender.set_feedback(context, &delta).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.sent.feedback = Some(payload);
+            }
             return;
         }
         if !multi {
             let image = render::key_image(kind, &visual, &global.fg_color);
-            let _ = sender.set_image(context, Some(&image), Target::HardwareAndSoftware, None);
-            let _ = sender.set_title(context, Some(&title), Target::HardwareAndSoftware, None);
+            let both_states = kind.has_toggle_state();
+            let image_changed = sent.image.as_deref() != Some(image.as_str());
+            let title_changed = sent.title.as_deref() != Some(title.as_str());
+            if (image_changed || title_changed)
+                && publish_face(
+                    &sender,
+                    context,
+                    both_states,
+                    image_changed.then_some(image.as_str()),
+                    title_changed.then_some(title.as_str()),
+                )
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                if image_changed {
+                    key.sent.image = Some(image);
+                }
+                if title_changed {
+                    key.sent.title = Some(title);
+                }
+            }
         }
         if kind.has_toggle_state() {
             let active = render::hardware_state(visual.iter().map(|segment| segment.state));
-            let _ = sender.set_state(context, active);
+            if sent.state != Some(active)
+                && sender.set_state(context, active).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.sent.state = Some(active);
+            }
         }
     }
 
@@ -608,6 +653,70 @@ struct Appearance {
     indicator: u8,
 }
 
+/// Keys that differ from the feedback Stream Deck already has.
+///
+/// A timecode tick must not resend the filename. Stream Deck redraws every
+/// property in the payload, and repeating an unchanged title blanks it.
+fn feedback_delta(previous: Option<&Value>, next: &Value) -> Value {
+    let Some(previous) = previous else {
+        return next.clone();
+    };
+    let (Some(prev), Some(next_map)) = (previous.as_object(), next.as_object()) else {
+        return if previous == next {
+            json!({})
+        } else {
+            next.clone()
+        };
+    };
+    let mut delta = serde_json::Map::new();
+    for (key, value) in next_map {
+        if prev.get(key) != Some(value) {
+            delta.insert(key.clone(), value.clone());
+        }
+    }
+    Value::Object(delta)
+}
+
+fn feedback_is_blank(value: &Value) -> bool {
+    value.as_object().is_some_and(|map| map.is_empty())
+}
+
+/// `setImage` / `setTitle` for the current face.
+///
+/// Toggle actions have two hardware states. A title sent without a state index
+/// lands on the state that is visible now, so the other state stays blank and
+/// the text vanishes on the next `setState`.
+fn publish_face(
+    sender: &CommandSender,
+    context: &str,
+    both_states: bool,
+    image: Option<&str>,
+    title: Option<&str>,
+) -> bool {
+    let states: &[Option<i32>] = if both_states {
+        &[Some(0), Some(1)]
+    } else {
+        &[None]
+    };
+    for state in states {
+        if let Some(image) = image
+            && sender
+                .set_image(context, Some(image), Target::HardwareAndSoftware, *state)
+                .is_err()
+        {
+            return false;
+        }
+        if let Some(title) = title
+            && sender
+                .set_title(context, Some(title), Target::HardwareAndSoftware, *state)
+                .is_err()
+        {
+            return false;
+        }
+    }
+    true
+}
+
 fn join_titles(targets: &[String], titles: &HashMap<String, String>) -> String {
     let mut unique = Vec::new();
     for id in targets {
@@ -678,6 +787,22 @@ mod tests {
             }
             sleep(Duration::from_millis(20)).await;
         }
+    }
+
+    #[test]
+    fn feedback_delta_leaves_an_unchanged_filename_out() {
+        let previous = json!({
+            "filename": "clip.mov",
+            "timecode": "01:02:03:04",
+        });
+        let next = json!({
+            "filename": "clip.mov",
+            "timecode": "01:02:03:05",
+        });
+        let delta = feedback_delta(Some(&previous), &next);
+        assert_eq!(delta, json!({ "timecode": "01:02:03:05" }));
+        assert!(feedback_is_blank(&feedback_delta(Some(&next), &next)));
+        assert_eq!(feedback_delta(None, &next), next);
     }
 
     #[tokio::test]
