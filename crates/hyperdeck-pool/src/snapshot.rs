@@ -5,14 +5,26 @@ use serde::{Deserialize, Serialize};
 use crate::message::DeckMessage;
 
 /// One timeline or disk clip row.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClipRow {
     pub id: String,
     pub name: String,
+    /// Clip start timecode, when the row included one.
+    #[serde(default)]
+    pub start: String,
+    /// Duration timecode, when the row included one.
+    #[serde(default)]
+    pub duration: String,
+    /// Timeline in point from a version 2 or 3 row.
+    #[serde(default)]
+    pub timeline_in: String,
+    /// Timeline out point from a version 2 or 3 row.
+    #[serde(default)]
+    pub timeline_out: String,
 }
 
-/// Cached deck state built from queries and notifications.
+/// Fields received from the deck. Queries and notifications both land here.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeckSnapshot {
@@ -84,8 +96,14 @@ impl DeckSnapshot {
         })
     }
 
-    /// Fold one server message into the cache.
-    pub fn apply(&mut self, message: &DeckMessage) {
+    /// Fold one server message into the cache. `true` when a field changed.
+    pub fn apply(&mut self, message: &DeckMessage) -> bool {
+        let previous = self.clone();
+        self.fold(message);
+        self != &previous
+    }
+
+    fn fold(&mut self, message: &DeckMessage) {
         let text = message.text.to_ascii_lowercase();
         if message.code == 500 || text.contains("connection info") {
             if let Some(model) = message.get("model") {
@@ -96,13 +114,13 @@ impl DeckSnapshot {
             }
         }
         if message.code == 208 || message.code == 508 || text.contains("transport info") {
-            replace_map(&mut self.transport, message);
+            apply_transport(&mut self.transport, message);
         }
         if text.contains("display timecode") || text.contains("timeline position") {
             merge_map(&mut self.transport, message);
         }
         if message.code == 202 || message.code == 502 || text.contains("slot info") {
-            replace_map(&mut self.slot, message);
+            apply_slot(&mut self.slot, message);
         }
         if message.code == 211
             || message.code == 511
@@ -126,13 +144,13 @@ impl DeckSnapshot {
                 replace_map(&mut self.playrange, message);
             }
         }
-        if message.code == 205 || text.contains("clips") {
+        if message.code == 205 {
             let rows = parse_rows(&message.body);
             if !rows.is_empty() {
                 self.clips = rows;
             }
         }
-        if message.code == 206 || text.contains("disk list") {
+        if message.code == 206 {
             let rows = parse_rows(&message.body);
             if !rows.is_empty() {
                 self.disk_clips = rows;
@@ -163,19 +181,141 @@ fn replace_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     merge_map(map, message);
 }
 
+/// `208 transport info` replaces the transport. A `508` notice replaces the
+/// fields it carries, but an omitted playback timecode stays. That timecode
+/// arrives on its own notice, and clearing it here blanks the key until then.
+fn apply_transport(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
+    if message.params.is_empty() {
+        return;
+    }
+    if message.code == 208 {
+        replace_map(map, message);
+        return;
+    }
+    // Keep the timecode pair together. A notice that updates `timecode` and
+    // omits `timeline` must not reuse the old frame, or the delta is counted twice.
+    let timecode_omitted = message.get("timecode").is_none();
+    let kept: Vec<(String, String)> = [
+        "display timecode",
+        "timecode",
+        "timeline position",
+        "timeline",
+    ]
+    .into_iter()
+    .filter_map(|key| {
+        if message.get(key).is_some() {
+            return None;
+        }
+        if matches!(key, "timeline" | "timeline position") && !timecode_omitted {
+            return None;
+        }
+        map.get(key).map(|value| (key.to_string(), value.clone()))
+    })
+    .collect();
+    replace_map(map, message);
+    for (key, value) in kept {
+        map.insert(key, value);
+    }
+}
+
+/// `202 slot info` replaces the slot. A `502` notice only carries the fields
+/// the deck included, so an omitted recording time stays at the last value.
+fn apply_slot(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
+    if message.params.is_empty() {
+        return;
+    }
+    if message.code == 202 {
+        replace_map(map, message);
+        return;
+    }
+    merge_map(map, message);
+    let status = message.get("status").unwrap_or("");
+    if matches!(status, "empty" | "mounting" | "error") {
+        for key in [
+            "recording time",
+            "remaining size",
+            "total size",
+            "volume name",
+        ] {
+            if message.get(key).is_none() {
+                map.remove(key);
+            }
+        }
+    }
+}
+
 fn merge_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     for (key, value) in &message.params {
         map.insert(key.clone(), value.clone());
     }
 }
 
+struct DescribedClip {
+    name: String,
+    start: String,
+    duration: String,
+    timeline_in: String,
+    timeline_out: String,
+}
+
+fn describe_clip_row(rest: &str) -> DescribedClip {
+    let tokens: Vec<&str> = rest.split_whitespace().collect();
+    let mut described = DescribedClip {
+        name: clip_name_from_row(rest),
+        start: String::new(),
+        duration: String::new(),
+        timeline_in: String::new(),
+        timeline_out: String::new(),
+    };
+    if tokens.is_empty() {
+        return described;
+    }
+    let name_at = tokens
+        .iter()
+        .position(|token| !is_timecode(token))
+        .unwrap_or(tokens.len());
+    if name_at >= 4 {
+        described.start = tokens[0].to_string();
+        described.duration = tokens[1].to_string();
+        described.timeline_in = tokens[2].to_string();
+        described.timeline_out = tokens[3].to_string();
+        return described;
+    }
+    if name_at == 2 {
+        described.start = tokens[0].to_string();
+        described.duration = tokens[1].to_string();
+        return described;
+    }
+    let last = tokens.len() - 1;
+    if tokens.len() >= 3 && is_timecode(tokens[last]) && is_timecode(tokens[last - 1]) {
+        described.start = tokens[last - 1].to_string();
+        described.duration = tokens[last].to_string();
+        return described;
+    }
+    if is_timecode(tokens[last]) {
+        described.duration = tokens[last].to_string();
+    }
+    described
+}
+
 fn clip_name_from_row(rest: &str) -> String {
     let tokens: Vec<&str> = rest.split_whitespace().collect();
+    if tokens.is_empty() {
+        return String::new();
+    }
+    // Version 1: `{name} {start} {duration}`.
     if tokens.len() >= 3
         && is_timecode(tokens[tokens.len() - 1])
         && is_timecode(tokens[tokens.len() - 2])
     {
         return tokens[..tokens.len() - 2].join(" ");
+    }
+    // Version 2 and 3: timecodes first, then the file name.
+    let name_at = tokens.iter().position(|token| !is_timecode(token));
+    if let Some(index) = name_at
+        && index > 0
+    {
+        return tokens[index..].join(" ");
     }
     tokens.first().copied().unwrap_or("").to_string()
 }
@@ -203,9 +343,14 @@ fn parse_rows(body: &str) -> Vec<ClipRow> {
         if id.is_empty() || !id.chars().all(|ch| ch.is_ascii_digit()) {
             continue;
         }
+        let described = describe_clip_row(rest);
         rows.push(ClipRow {
             id: id.to_string(),
-            name: clip_name_from_row(rest),
+            name: described.name,
+            start: described.start,
+            duration: described.duration,
+            timeline_in: described.timeline_in,
+            timeline_out: described.timeline_out,
         });
     }
     rows
@@ -261,6 +406,58 @@ mod tests {
     }
 
     #[test]
+    fn transport_notice_keeps_the_playback_timecode_it_omits() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 208,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "play".into()),
+                ("speed".into(), "100".into()),
+                ("display timecode".into(), "00:01:02:03".into()),
+                ("timecode".into(), "00:01:02:03".into()),
+                ("timeline".into(), "1500".into()),
+                ("loop".into(), "true".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 508,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "play".into()),
+                ("speed".into(), "200".into()),
+            ],
+        });
+        assert_eq!(snapshot.speed(), 200);
+        assert_eq!(snapshot.transport_value("loop"), "");
+        assert_eq!(snapshot.transport_value("display timecode"), "00:01:02:03");
+        assert_eq!(snapshot.transport_value("timecode"), "00:01:02:03");
+        assert_eq!(snapshot.transport_value("timeline"), "1500");
+        snapshot.apply(&DeckMessage {
+            code: 513,
+            text: "display timecode".into(),
+            body: String::new(),
+            params: vec![("display timecode".into(), "00:01:02:04".into())],
+        });
+        assert_eq!(snapshot.transport_value("display timecode"), "00:01:02:04");
+        assert_eq!(snapshot.transport_value("timecode"), "00:01:02:03");
+        snapshot.apply(&DeckMessage {
+            code: 208,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "stopped".into()),
+                ("speed".into(), "0".into()),
+            ],
+        });
+        assert_eq!(snapshot.transport_value("display timecode"), "");
+        assert_eq!(snapshot.transport_value("timecode"), "");
+        assert_eq!(snapshot.transport_value("timeline"), "");
+    }
+
+    #[test]
     fn clip_rows_keep_the_full_name_before_the_timecodes() {
         let mut snapshot = DeckSnapshot::default();
         snapshot.apply(&DeckMessage {
@@ -270,6 +467,8 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.clips[0].name, "My Clip");
+        assert_eq!(snapshot.clips[0].start, "00:00:00:00");
+        assert_eq!(snapshot.clips[0].duration, "00:00:10:00");
         assert_eq!(snapshot.clips[1].name, "other.mov");
         snapshot.apply(&DeckMessage {
             code: 206,
@@ -278,5 +477,131 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.disk_clips[0].name, "clip.mov");
+        assert_eq!(snapshot.disk_clips[0].duration, "00:00:10:00");
+        snapshot.apply(&DeckMessage {
+            code: 205,
+            text: "clips info".into(),
+            body: "1: 00:00:00:00 00:00:10:00 00:00:01:00 00:00:08:00 folder/My Clip.mov\r\n"
+                .into(),
+            params: Vec::new(),
+        });
+        assert_eq!(snapshot.clips[0].name, "folder/My Clip.mov");
+        assert_eq!(snapshot.clips[0].start, "00:00:00:00");
+        assert_eq!(snapshot.clips[0].duration, "00:00:10:00");
+        assert_eq!(snapshot.clips[0].timeline_in, "00:00:01:00");
+        assert_eq!(snapshot.clips[0].timeline_out, "00:00:08:00");
+    }
+
+    #[test]
+    fn partial_clip_notice_does_not_replace_the_complete_clip_list() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 205,
+            text: "clips info".into(),
+            body: "1: A.mov 00:00:00:00 00:00:10:00\r\n2: B.mov 00:00:10:00 00:00:05:00\r\n".into(),
+            params: Vec::new(),
+        });
+        let changed = snapshot.apply(&DeckMessage {
+            code: 519,
+            text: "clips info".into(),
+            body: "type: update\r\n2: B.mov 00:00:10:00 00:00:06:00\r\n".into(),
+            params: vec![("type".into(), "update".into())],
+        });
+        assert!(!changed);
+        assert_eq!(snapshot.clips.len(), 2);
+        assert_eq!(snapshot.clips[1].duration, "00:00:05:00");
+    }
+
+    #[test]
+    fn slot_notice_keeps_recording_time_the_deck_already_sent() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "mounted".into()),
+                ("volume name".into(), "Media".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "3600");
+        assert_eq!(snapshot.slot_value("remaining size"), "1000");
+        assert_eq!(snapshot.slot_value("volume name"), "Media");
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![("recording time".into(), "3599".into())],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "3599");
+        assert_eq!(snapshot.slot_value("remaining size"), "1000");
+    }
+
+    #[test]
+    fn empty_slot_notice_drops_the_previous_recording_time() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+                ("volume name".into(), "Media".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 502,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "1".into()),
+                ("status".into(), "empty".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "");
+        assert_eq!(snapshot.slot_value("remaining size"), "");
+        assert_eq!(snapshot.slot_value("volume name"), "");
+        assert_eq!(snapshot.slot_value("status"), "empty");
+    }
+
+    #[test]
+    fn slot_query_replaces_the_previous_slot() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("recording time".into(), "3600".into()),
+                ("remaining size".into(), "1000".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 202,
+            text: "slot info".into(),
+            body: String::new(),
+            params: vec![
+                ("slot id".into(), "2".into()),
+                ("status".into(), "mounted".into()),
+                ("recording time".into(), "10".into()),
+            ],
+        });
+        assert_eq!(snapshot.slot_value("recording time"), "10");
+        assert_eq!(snapshot.slot_value("remaining size"), "");
+        assert_eq!(snapshot.slot_value("slot id"), "2");
     }
 }

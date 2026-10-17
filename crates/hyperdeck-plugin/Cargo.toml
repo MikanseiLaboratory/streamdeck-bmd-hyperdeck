@@ -23,6 +23,7 @@ path = "src/bin/typegen.rs"
 anyhow = "1"
 base64 = "0.22"
 hyperdeck-pool = { path = "../hyperdeck-pool" }
+hyperdeck-tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 streamdeck-plugin = { version = "0.1", features = ["macros", "typegen"] }

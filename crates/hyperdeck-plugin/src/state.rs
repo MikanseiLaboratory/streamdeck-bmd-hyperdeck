@@ -23,11 +23,20 @@ struct Press {
 struct LiveKey {
     kind: ActionKind,
     settings: ActionSettings,
-    segments: HashMap<String, SegmentState>,
-    titles: HashMap<String, String>,
-    indicators: HashMap<String, u8>,
-    title: String,
     multi: bool,
+    /// Layout last accepted by Stream Deck. Sent again only when it changes.
+    layout: String,
+    /// Picture last accepted by Stream Deck. Unchanged faces are not sent again.
+    sent: SentFace,
+}
+
+/// Last `setImage` / `setTitle` / `setState` / `setFeedback` accepted for one key.
+#[derive(Clone, Debug, Default)]
+struct SentFace {
+    image: Option<String>,
+    title: Option<String>,
+    state: Option<i32>,
+    feedback: Option<Value>,
 }
 
 struct Runtime {
@@ -35,7 +44,6 @@ struct Runtime {
     keys: Mutex<HashMap<String, LiveKey>>,
     presses: Mutex<HashMap<String, Press>>,
     global: Mutex<GlobalSettings>,
-    errors: Mutex<HashMap<(String, String), String>>,
     dirty: Mutex<HashSet<String>>,
     dirty_notify: Notify,
     inspectors: Mutex<HashSet<String>>,
@@ -74,7 +82,6 @@ impl AppState {
                 keys: Mutex::new(HashMap::new()),
                 presses: Mutex::new(HashMap::new()),
                 global: Mutex::new(GlobalSettings::default()),
-                errors: Mutex::new(HashMap::new()),
                 dirty: Mutex::new(HashSet::new()),
                 dirty_notify: Notify::new(),
                 inspectors: Mutex::new(HashSet::new()),
@@ -131,25 +138,18 @@ impl AppState {
         settings: ActionSettings,
         multi: bool,
     ) {
-        let mut keys = self.runtime.keys.lock().await;
-        let previous = keys.remove(context);
-        let (segments, titles, indicators) = previous
-            .map(|key| (key.segments, key.titles, key.indicators))
-            .unwrap_or_default();
-        keys.insert(
+        self.runtime.keys.lock().await.insert(
             context.to_string(),
             LiveKey {
                 kind,
                 settings,
-                segments,
-                titles,
-                indicators,
-                title: String::new(),
                 multi,
+                layout: String::new(),
+                sent: SentFace::default(),
             },
         );
-        drop(keys);
         self.refresh_key(context).await;
+        self.mark_catalog_open().await;
     }
 
     /// Forget a key that left the profile.
@@ -242,11 +242,6 @@ impl AppState {
         self.spawn_gesture(context, Gesture::Press(PressKind::Single));
     }
 
-    /// Dial touch.
-    pub fn dial_touch(&self, context: &str) {
-        self.spawn_gesture(context, Gesture::Touch);
-    }
-
     /// Dial rotation.
     pub fn rotate(&self, context: &str, ticks: i32) {
         self.spawn_gesture(context, Gesture::Rotate(ticks));
@@ -292,45 +287,10 @@ impl AppState {
         });
     }
 
-    /// Recompute bands and titles from the pool cache.
+    /// Schedule a repaint. The picture is read from the deck snapshots when it is drawn.
     pub async fn refresh_key(&self, context: &str) {
-        let Some((kind, settings)) = self.key_settings(context).await else {
+        if self.key_settings(context).await.is_none() {
             return;
-        };
-        let targets = self.targets_for(&settings).await;
-        let failed = self.failed_ids(context).await;
-        let mut segments = HashMap::new();
-        let mut titles = HashMap::new();
-        let mut indicators = HashMap::new();
-        for id in &targets {
-            let snapshot = self.pool.snapshot(id).await.unwrap_or_default();
-            let connected = matches!(
-                self.pool.status(id).await,
-                Some(ConnectionStatus::Connected)
-            ) && snapshot.connected;
-            let params = settings.params_for(id);
-            let face = ops::face(kind, params, &snapshot);
-            let state = if !connected {
-                SegmentState::Disconnected
-            } else if failed.contains(id) {
-                SegmentState::Error
-            } else if face.active {
-                SegmentState::Active
-            } else {
-                SegmentState::Off
-            };
-            segments.insert(id.clone(), state);
-            if !face.title.trim().is_empty() {
-                titles.insert(id.clone(), face.title);
-            }
-            indicators.insert(id.clone(), face.indicator);
-        }
-        let title = join_titles(&targets, &titles);
-        if let Some(key) = self.runtime.keys.lock().await.get_mut(context) {
-            key.segments = segments;
-            key.titles = titles;
-            key.indicators = indicators;
-            key.title = title;
         }
         self.mark_dirty(context).await;
     }
@@ -348,19 +308,15 @@ impl AppState {
             if commands.is_empty() {
                 continue;
             }
-            let mut failed = None;
+            let mut failed = false;
             for command in &commands {
                 if let Err(error) = self.pool.call_raw(id, command.as_bytes()).await {
-                    failed = Some(error.to_string());
+                    tracing::warn!(id, %error, "hyperdeck command failed");
+                    failed = true;
                     break;
                 }
             }
-            let mut errors = self.runtime.errors.lock().await;
-            if let Some(message) = failed {
-                tracing::warn!(id, %message, "hyperdeck command failed");
-                errors.insert((context.to_string(), id.clone()), message);
-            } else {
-                errors.remove(&(context.to_string(), id.clone()));
+            if !failed {
                 any_ok = true;
             }
         }
@@ -400,7 +356,7 @@ impl AppState {
         let Some(sender) = self.runtime.sender.lock().await.clone() else {
             return;
         };
-        let (kind, settings, segments, titles, indicators, title, multi) = {
+        let (kind, settings, multi, sent_layout, sent) = {
             let keys = self.runtime.keys.lock().await;
             let Some(key) = keys.get(context) else {
                 return;
@@ -408,62 +364,93 @@ impl AppState {
             (
                 key.kind,
                 key.settings.clone(),
-                key.segments.clone(),
-                key.titles.clone(),
-                key.indicators.clone(),
-                key.title.clone(),
                 key.multi,
+                key.layout.clone(),
+                key.sent.clone(),
             )
         };
         let global = self.runtime.global.lock().await.clone();
         let targets = self.targets_for(&settings).await;
-        let visual: Vec<Segment> = targets
-            .iter()
-            .map(|id| {
-                let instance = global.instances.iter().find(|item| item.id == *id);
-                let state = segments
-                    .get(id)
-                    .copied()
-                    .unwrap_or(SegmentState::Disconnected);
-                let params = settings.params_for(id);
-                let mut color = instance
-                    .map(|item| item.color.clone())
-                    .unwrap_or_else(|| "#4c8dff".into());
-                if state == SegmentState::Active && !params.active_color.trim().is_empty() {
-                    color = params.active_color.trim().to_string();
-                }
-                Segment {
-                    label: instance
-                        .map(|item| item.name.clone())
-                        .unwrap_or_else(|| id.clone()),
-                    color,
-                    state,
-                }
-            })
-            .collect();
+        let mut visual = Vec::with_capacity(targets.len());
+        let mut captions = Vec::with_capacity(targets.len());
+        let mut levels = Vec::with_capacity(targets.len());
+        let mut titles = HashMap::new();
+        for id in &targets {
+            let appearance = self.appearance(kind, &settings, id).await;
+            let instance = global.instances.iter().find(|item| item.id == *id);
+            let params = settings.params_for(id);
+            let mut color = instance
+                .map(|item| item.color.clone())
+                .unwrap_or_else(|| "#4c8dff".into());
+            if appearance.state == SegmentState::Active && !params.active_color.trim().is_empty() {
+                color = params.active_color.trim().to_string();
+            }
+            visual.push(Segment {
+                label: instance
+                    .map(|item| item.name.clone())
+                    .unwrap_or_else(|| id.clone()),
+                color,
+                state: appearance.state,
+            });
+            captions.push(appearance.title.clone());
+            levels.push(appearance.indicator);
+            if !appearance.title.trim().is_empty() {
+                titles.insert(id.clone(), appearance.title);
+            }
+        }
+        let title = join_titles(&targets, &titles);
         if kind.is_dial() {
-            let captions: Vec<String> = targets
-                .iter()
-                .map(|id| titles.get(id).cloned().unwrap_or_default())
-                .collect();
-            let levels: Vec<u8> = targets
-                .iter()
-                .map(|id| indicators.get(id).copied().unwrap_or(0))
-                .collect();
             let (layout, payload) =
                 render::dial_feedback(kind, &visual, &captions, &levels, &global.fg_color);
-            let _ = sender.set_feedback_layout(context, &layout);
-            let _ = sender.set_feedback(context, &payload);
+            let mut previous_feedback = sent.feedback;
+            if sent_layout != layout
+                && sender.set_feedback_layout(context, &layout).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.layout = layout;
+                key.sent.feedback = None;
+                previous_feedback = None;
+            }
+            let delta = feedback_delta(previous_feedback.as_ref(), &payload);
+            if !feedback_is_blank(&delta)
+                && sender.set_feedback(context, &delta).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.sent.feedback = Some(payload);
+            }
             return;
         }
         if !multi {
             let image = render::key_image(kind, &visual, &global.fg_color);
-            let _ = sender.set_image(context, Some(&image), Target::HardwareAndSoftware, None);
-            let _ = sender.set_title(context, Some(&title), Target::HardwareAndSoftware, None);
+            let both_states = kind.has_toggle_state();
+            let image_changed = sent.image.as_deref() != Some(image.as_str());
+            let title_changed = sent.title.as_deref() != Some(title.as_str());
+            if (image_changed || title_changed)
+                && publish_face(
+                    &sender,
+                    context,
+                    both_states,
+                    image_changed.then_some(image.as_str()),
+                    title_changed.then_some(title.as_str()),
+                )
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                if image_changed {
+                    key.sent.image = Some(image);
+                }
+                if title_changed {
+                    key.sent.title = Some(title);
+                }
+            }
         }
         if kind.has_toggle_state() {
             let active = render::hardware_state(visual.iter().map(|segment| segment.state));
-            let _ = sender.set_state(context, active);
+            if sent.state != Some(active)
+                && sender.set_state(context, active).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.sent.state = Some(active);
+            }
         }
     }
 
@@ -561,15 +548,30 @@ impl AppState {
         Some((key.kind, key.settings.clone()))
     }
 
-    async fn failed_ids(&self, context: &str) -> HashSet<String> {
-        self.runtime
-            .errors
-            .lock()
-            .await
-            .iter()
-            .filter(|(key, _)| key.0 == context)
-            .map(|(key, _)| key.1.clone())
-            .collect()
+    async fn appearance(
+        &self,
+        kind: ActionKind,
+        settings: &ActionSettings,
+        id: &str,
+    ) -> Appearance {
+        let snapshot = self.pool.snapshot(id).await.unwrap_or_default();
+        let connected = matches!(
+            self.pool.status(id).await,
+            Some(ConnectionStatus::Connected)
+        ) && snapshot.connected;
+        let face = ops::face(kind, settings.params_for(id), &snapshot);
+        let state = if !connected {
+            SegmentState::Disconnected
+        } else if face.active {
+            SegmentState::Active
+        } else {
+            SegmentState::Off
+        };
+        Appearance {
+            state,
+            title: face.title,
+            indicator: face.indicator,
+        }
     }
 
     async fn mark_dirty(&self, context: &str) {
@@ -631,13 +633,83 @@ impl AppState {
 
     #[cfg(test)]
     async fn segment_state(&self, context: &str, id: &str) -> Option<SegmentState> {
-        self.runtime
-            .keys
-            .lock()
-            .await
-            .get(context)
-            .and_then(|key| key.segments.get(id).copied())
+        let (kind, settings) = self.key_settings(context).await?;
+        let targets = self.targets_for(&settings).await;
+        if !targets.iter().any(|target| target == id) {
+            return None;
+        }
+        Some(self.appearance(kind, &settings, id).await.state)
     }
+}
+
+struct Appearance {
+    state: SegmentState,
+    title: String,
+    indicator: u8,
+}
+
+/// Keys that differ from the feedback Stream Deck already has.
+///
+/// A timecode tick must not resend the filename. Stream Deck redraws every
+/// property in the payload, and repeating an unchanged title blanks it.
+fn feedback_delta(previous: Option<&Value>, next: &Value) -> Value {
+    let Some(previous) = previous else {
+        return next.clone();
+    };
+    let (Some(prev), Some(next_map)) = (previous.as_object(), next.as_object()) else {
+        return if previous == next {
+            json!({})
+        } else {
+            next.clone()
+        };
+    };
+    let mut delta = serde_json::Map::new();
+    for (key, value) in next_map {
+        if prev.get(key) != Some(value) {
+            delta.insert(key.clone(), value.clone());
+        }
+    }
+    Value::Object(delta)
+}
+
+fn feedback_is_blank(value: &Value) -> bool {
+    value.as_object().is_some_and(|map| map.is_empty())
+}
+
+/// `setImage` / `setTitle` for the current face.
+///
+/// Toggle actions have two hardware states. A title sent without a state index
+/// lands on the state that is visible now, so the other state stays blank and
+/// the text vanishes on the next `setState`.
+fn publish_face(
+    sender: &CommandSender,
+    context: &str,
+    both_states: bool,
+    image: Option<&str>,
+    title: Option<&str>,
+) -> bool {
+    let states: &[Option<i32>] = if both_states {
+        &[Some(0), Some(1)]
+    } else {
+        &[None]
+    };
+    for state in states {
+        if let Some(image) = image
+            && sender
+                .set_image(context, Some(image), Target::HardwareAndSoftware, *state)
+                .is_err()
+        {
+            return false;
+        }
+        if let Some(title) = title
+            && sender
+                .set_title(context, Some(title), Target::HardwareAndSoftware, *state)
+                .is_err()
+        {
+            return false;
+        }
+    }
+    true
 }
 
 fn join_titles(targets: &[String], titles: &HashMap<String, String>) -> String {
@@ -691,6 +763,7 @@ mod tests {
             enabled: true,
             username: String::new(),
             password: String::new(),
+            update_interval_ms: hyperdeck_pool::DEFAULT_UPDATE_INTERVAL_MS,
         }
     }
 
@@ -710,6 +783,22 @@ mod tests {
             }
             sleep(Duration::from_millis(20)).await;
         }
+    }
+
+    #[test]
+    fn feedback_delta_leaves_an_unchanged_filename_out() {
+        let previous = json!({
+            "filename": "clip.mov",
+            "timecode": "01:02:03:04",
+        });
+        let next = json!({
+            "filename": "clip.mov",
+            "timecode": "01:02:03:05",
+        });
+        let delta = feedback_delta(Some(&previous), &next);
+        assert_eq!(delta, json!({ "timecode": "01:02:03:05" }));
+        assert!(feedback_is_blank(&feedback_delta(Some(&next), &next)));
+        assert_eq!(feedback_delta(None, &next), next);
     }
 
     #[tokio::test]

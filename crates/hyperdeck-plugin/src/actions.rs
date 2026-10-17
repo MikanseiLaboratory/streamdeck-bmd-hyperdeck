@@ -1,7 +1,7 @@
 use serde_json::Value;
 use streamdeck_plugin::{
     ActionContext, ActionPayload, DialRotatePayload, EncoderAction, KeypadAction, Result,
-    TouchTapPayload, streamdeck_action,
+    streamdeck_action,
 };
 
 use crate::contracts::ActionSettings;
@@ -145,15 +145,6 @@ macro_rules! hyperdeck_dial {
                 Ok(())
             }
 
-            async fn on_touch_tap(
-                &mut self,
-                _payload: &TouchTapPayload,
-                ctx: &ActionContext<'_, Self::Settings, Self::State>,
-            ) -> Result<()> {
-                ctx.state().dial_touch(&ctx.identity().context);
-                Ok(())
-            }
-
             async fn on_property_inspector_did_appear(
                 &mut self,
                 ctx: &ActionContext<'_, Self::Settings, Self::State>,
@@ -217,16 +208,6 @@ hyperdeck_key!(
     PreviewAction,
     "dev.mikanseilaboratory.bmd.hyperdeck.preview",
     ActionKind::Preview
-);
-hyperdeck_key!(
-    LoopAction,
-    "dev.mikanseilaboratory.bmd.hyperdeck.loop",
-    ActionKind::Loop
-);
-hyperdeck_key!(
-    SingleClipAction,
-    "dev.mikanseilaboratory.bmd.hyperdeck.singleclip",
-    ActionKind::SingleClip
 );
 hyperdeck_key!(
     SlotAction,
@@ -461,8 +442,6 @@ pub fn force_link() {
         std::any::TypeId::of::<RecordAction>(),
         std::any::TypeId::of::<StopAction>(),
         std::any::TypeId::of::<PreviewAction>(),
-        std::any::TypeId::of::<LoopAction>(),
-        std::any::TypeId::of::<SingleClipAction>(),
         std::any::TypeId::of::<SlotAction>(),
         std::any::TypeId::of::<ClipAction>(),
         std::any::TypeId::of::<PlayRangeAction>(),

@@ -1,4 +1,5 @@
 use hyperdeck_pool::DeckSnapshot;
+use hyperdeck_tokio::core::types::{Timecode, VideoFormat};
 
 use crate::contracts::ActionParams;
 use crate::kind::{ActionKind, PressKind};
@@ -10,8 +11,6 @@ pub enum Gesture {
     Press(PressKind),
     /// Encoder rotation. Positive ticks are clockwise.
     Rotate(i32),
-    /// Encoder touch screen tap.
-    Touch,
 }
 
 /// Text and light derived from one deck snapshot.
@@ -34,7 +33,6 @@ pub fn commands(
 ) -> Vec<String> {
     match gesture {
         Gesture::Rotate(ticks) => rotate_commands(kind, params, snap, ticks),
-        Gesture::Touch => touch_commands(kind, params, snap),
         Gesture::Press(press) => press_commands(kind, params, snap, press),
     }
 }
@@ -64,8 +62,6 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             title: status.to_string(),
             indicator: 0,
         },
-        ActionKind::Loop => flag_face(snap.transport_value("loop"), "Loop"),
-        ActionKind::SingleClip => flag_face(snap.transport_value("single clip"), "Single"),
         ActionKind::Slot => {
             let current = snap.transport_value("slot id");
             let wanted = if params.slot_id.trim().is_empty() {
@@ -91,11 +87,14 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             title: clip_title(snap),
             indicator: 0,
         },
-        ActionKind::ClipList => Face {
-            active: !current_clip_id(snap).is_empty(),
-            title: clip_list_caption(snap),
-            indicator: clip_indicator(snap),
-        },
+        ActionKind::ClipList => {
+            let clock = playback_clock(snap, params);
+            Face {
+                active: !current_clip_id(snap).is_empty(),
+                title: time_caption(ActionKind::ClipList, snap, params, &clock),
+                indicator: clock.progress,
+            }
+        }
         ActionKind::PlayRange => Face {
             active: snap.playrange_active(),
             title: playrange_title(snap),
@@ -154,11 +153,12 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             indicator: 0,
         },
         ActionKind::Remaining => {
-            let seconds = recording_seconds(snap);
+            let raw = snap.slot_value("recording time");
+            let seconds = recording_seconds(raw);
             let threshold = params.threshold_seconds;
             Face {
                 active: seconds > 0 && seconds <= u64::from(threshold),
-                title: format!("{seconds}s {}", snap.slot_value("remaining size")),
+                title: remaining_title(raw, snap.slot_value("remaining size")),
                 indicator: 0,
             }
         }
@@ -201,13 +201,16 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
                 indicator: percent_of(speed.unsigned_abs(), 5000),
             }
         }
-        ActionKind::Jog => Face {
-            active: status == "jog",
-            title: timecode,
-            indicator: 0,
-        },
+        ActionKind::Jog => {
+            let clock = playback_clock(snap, params);
+            Face {
+                active: status == "jog",
+                title: time_caption(ActionKind::Jog, snap, params, &clock),
+                indicator: clock.progress,
+            }
+        }
         ActionKind::PlaySpeed => {
-            let speed = play_speed_percent(snap);
+            let speed = snap.speed();
             Face {
                 active: playing(status),
                 title: format_play_speed(speed),
@@ -220,16 +223,15 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             indicator: position_indicator(snap),
         },
         ActionKind::AudioChannels => {
-            let count = snap.config_value("audio input channels");
-            let parsed = audio_channel_base(snap);
+            let count = snap.config_value("audio input channels").trim();
+            let indicator = count
+                .parse::<u32>()
+                .map(|value| percent_of(value.min(64), 64))
+                .unwrap_or(0);
             Face {
                 active: false,
-                title: if count.is_empty() {
-                    "2".into()
-                } else {
-                    count.to_string()
-                },
-                indicator: percent_of(parsed.unsigned_abs().min(64), 64),
+                title: count.to_string(),
+                indicator,
             }
         }
         ActionKind::RawDial => Face {
@@ -293,14 +295,6 @@ fn press_commands(
                     "true"
                 },
             )],
-        )],
-        ActionKind::Loop => vec![line(
-            "play",
-            &[("loop", flip(snap.transport_value("loop")))],
-        )],
-        ActionKind::SingleClip => vec![line(
-            "play",
-            &[("single clip", flip(snap.transport_value("single clip")))],
         )],
         ActionKind::Slot => slot_select(params),
         ActionKind::Clip => {
@@ -453,7 +447,9 @@ fn rotate_commands(
         }
         ActionKind::Jog => {
             let frames = delta.unsigned_abs().max(1);
-            let tc = frames_to_timecode(frames);
+            let Some(tc) = jog_timecode(frames, reported_fps(snap)) else {
+                return Vec::new();
+            };
             let signed = if delta < 0 {
                 format!("-{tc}")
             } else {
@@ -462,7 +458,7 @@ fn rotate_commands(
             vec![line("jog", &[("timecode", &signed)])]
         }
         ActionKind::PlaySpeed => {
-            let speed = (i64::from(play_speed_percent(snap)) + i64::from(delta)).clamp(-5000, 5000);
+            let speed = (i64::from(snap.speed()) + i64::from(delta)).clamp(-5000, 5000);
             vec![line("play", &[("speed", &speed.to_string())])]
         }
         ActionKind::ClipList => {
@@ -478,8 +474,10 @@ fn rotate_commands(
             vec![line("goto", &[("timeline", &target)])]
         }
         ActionKind::AudioChannels => {
-            let current = audio_channel_base(snap);
-            let next = (current + delta).clamp(0, 64);
+            let Some(current) = reported_audio_channels(snap) else {
+                return Vec::new();
+            };
+            let next = (i64::from(current) + i64::from(delta)).clamp(0, 64);
             vec![line(
                 "configuration",
                 &[("audio input channels", &next.to_string())],
@@ -493,17 +491,6 @@ fn rotate_commands(
             };
             raw_line(text).into_iter().collect()
         }
-        _ => Vec::new(),
-    }
-}
-
-fn touch_commands(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Vec<String> {
-    match kind {
-        ActionKind::RawDial => raw_line(&params.raw_touch).into_iter().collect(),
-        ActionKind::Shuttle | ActionKind::Jog | ActionKind::Position | ActionKind::ClipList => {
-            press_commands(ActionKind::Stop, params, snap, PressKind::Single)
-        }
-        ActionKind::PlaySpeed => press_commands(kind, params, snap, PressKind::Single),
         _ => Vec::new(),
     }
 }
@@ -638,24 +625,18 @@ fn bool_config(key: &str, snap: &DeckSnapshot) -> Vec<String> {
     )]
 }
 
-/// Stopped decks report speed 0. The play-speed dial treats that as 1.00x.
-fn play_speed_percent(snap: &DeckSnapshot) -> i32 {
-    let speed = snap.speed();
-    if speed == 0 { 100 } else { speed }
-}
-
 fn format_play_speed(percent: i32) -> String {
     let sign = if percent < 0 { "-" } else { "" };
     let abs = percent.unsigned_abs();
     format!("{sign}{}.{:02}x", abs / 100, abs % 100)
 }
 
-fn audio_channel_base(snap: &DeckSnapshot) -> i32 {
+fn reported_audio_channels(snap: &DeckSnapshot) -> Option<i32> {
     let count = snap.config_value("audio input channels").trim();
     if count.is_empty() {
-        2
+        None
     } else {
-        count.parse().unwrap_or(0)
+        count.parse().ok()
     }
 }
 
@@ -677,31 +658,277 @@ fn clip_title(snap: &DeckSnapshot) -> String {
     }
 }
 
-/// Dial caption: timeline number, then the clip name, split by a record separator.
-fn clip_list_caption(snap: &DeckSnapshot) -> String {
-    format!("{}\u{1e}{}", current_clip_id(snap), snap.clip_name())
+struct PlaybackClock {
+    current: String,
+    remaining: String,
+    total: String,
+    progress: u8,
 }
 
-fn clip_indicator(snap: &DeckSnapshot) -> u8 {
-    let len = u32::try_from(snap.clips.len()).unwrap_or(0);
-    if len == 0 {
-        return 0;
+fn empty_clock() -> PlaybackClock {
+    PlaybackClock {
+        current: String::new(),
+        remaining: String::new(),
+        total: String::new(),
+        progress: 0,
     }
-    let id = snap.transport_value("clip id");
-    let Some(index) = snap.clips.iter().position(|clip| clip.id == id) else {
-        return 0;
-    };
-    percent_of(u32::try_from(index).unwrap_or(0).saturating_add(1), len)
 }
 
-fn frames_to_timecode(frames: u32) -> String {
-    let fps = 30u32;
-    let seconds = frames / fps;
-    let ff = frames % fps;
-    let ss = seconds % 60;
-    let mm = (seconds / 60) % 60;
-    let hh = seconds / 3600;
-    format!("{hh:02}:{mm:02}:{ss:02}:{ff:02}")
+fn uses_timeline(params: &ActionParams) -> bool {
+    params.time_basis.eq_ignore_ascii_case("timeline")
+}
+
+/// Current, remaining, and total time.
+///
+/// Clip time stays inside the current clip. The deck's numeric timeline
+/// position is only the frame counter used to find that clip offset. The
+/// whole-timeline clock is drawn when the inspector selects Timeline.
+fn playback_clock(snap: &DeckSnapshot, params: &ActionParams) -> PlaybackClock {
+    if snap.status() == "record" {
+        return empty_clock();
+    }
+    if uses_timeline(params) {
+        timeline_clock(snap)
+    } else {
+        clip_clock(snap)
+    }
+}
+
+fn time_caption(
+    kind: ActionKind,
+    snap: &DeckSnapshot,
+    params: &ActionParams,
+    clock: &PlaybackClock,
+) -> String {
+    let basis = if uses_timeline(params) { "TL" } else { "CLIP" };
+    format!(
+        "{}\u{1e}{}\u{1e}{}\u{1e}{}\u{1e}{basis}",
+        time_name(kind, snap),
+        clock.current,
+        clock.remaining,
+        clock.total
+    )
+}
+
+fn time_name(kind: ActionKind, snap: &DeckSnapshot) -> String {
+    let name = snap.clip_name();
+    if !name.is_empty() {
+        return name;
+    }
+    let id = current_clip_id(snap);
+    if !id.is_empty() {
+        return id.to_string();
+    }
+    kind.dial_heading().to_string()
+}
+
+fn clip_clock(snap: &DeckSnapshot) -> PlaybackClock {
+    let id = current_clip_id(snap);
+    let Some((index, clip)) = snap
+        .clips
+        .iter()
+        .enumerate()
+        .find(|(_, clip)| clip.id == id)
+    else {
+        return empty_clock();
+    };
+    let Some(fps) = reported_fps(snap) else {
+        return empty_clock();
+    };
+    let Some(duration) = duration_frames(&clip.duration, fps) else {
+        return empty_clock();
+    };
+    clock_from_frames(
+        elapsed_in_clip(snap, clip, index, fps, duration),
+        duration,
+        fps,
+    )
+}
+
+/// Frames already played in this clip.
+///
+/// The live value on most decks is the numeric timeline position. Subtracting
+/// the durations of the clips before this one turns that counter into a clip
+/// offset, which is still clip time. Timecode is the fallback when that
+/// counter is missing or points at a different clip.
+fn elapsed_in_clip(
+    snap: &DeckSnapshot,
+    clip: &hyperdeck_pool::ClipRow,
+    index: usize,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    elapsed_from_timeline_offset(snap, index, fps, duration)
+        .or_else(|| elapsed_from_reported_timecode(snap, clip, fps, duration))
+}
+
+fn elapsed_from_timeline_offset(
+    snap: &DeckSnapshot,
+    index: usize,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = snap
+        .transport_value("timeline position")
+        .parse::<u32>()
+        .ok()
+        .or_else(|| snap.transport_value("timeline").parse::<u32>().ok())?;
+    let start = snap.clips[..index].iter().try_fold(0u32, |total, clip| {
+        Some(total.saturating_add(duration_frames(&clip.duration, fps)?))
+    })?;
+    let end = start.saturating_add(duration);
+    if position < start || position > end {
+        None
+    } else {
+        Some(position.saturating_sub(start))
+    }
+}
+
+fn elapsed_from_reported_timecode(
+    snap: &DeckSnapshot,
+    clip: &hyperdeck_pool::ClipRow,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    ["timecode", "display timecode"]
+        .into_iter()
+        .find_map(|key| elapsed_against_clip_start(snap.transport_value(key), clip, fps, duration))
+}
+
+fn elapsed_against_clip_start(
+    raw: &str,
+    clip: &hyperdeck_pool::ClipRow,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = parse_timecode(raw)?.to_frames(fps);
+    let start = if clip.start.trim().is_empty() {
+        0
+    } else {
+        parse_timecode(&clip.start)?.to_frames(fps)
+    };
+    let end = start.saturating_add(duration);
+    if position < start || position > end {
+        None
+    } else {
+        Some(position.saturating_sub(start))
+    }
+}
+
+fn timeline_clock(snap: &DeckSnapshot) -> PlaybackClock {
+    let Some(fps) = reported_fps(snap) else {
+        return empty_clock();
+    };
+    let Some(total) = snap.clips.iter().try_fold(0u32, |sum, clip| {
+        Some(sum.saturating_add(duration_frames(&clip.duration, fps)?))
+    }) else {
+        return empty_clock();
+    };
+    if total == 0 {
+        return empty_clock();
+    }
+    clock_from_frames(timeline_frames(snap, fps, total), total, fps)
+}
+
+fn timeline_frames(snap: &DeckSnapshot, fps: u32, total: u32) -> Option<u32> {
+    if let Some(position) = snap
+        .transport_value("timeline position")
+        .parse::<u32>()
+        .ok()
+        .or_else(|| snap.transport_value("timeline").parse::<u32>().ok())
+    {
+        return Some(position);
+    }
+    let origin = snap
+        .clips
+        .iter()
+        .find_map(|clip| parse_timecode(&clip.timeline_in).map(|time| time.to_frames(fps)))?;
+    let position = parse_timecode(snap.transport_value("timecode"))?.to_frames(fps);
+    let end = origin.saturating_add(total);
+    if position < origin || position > end {
+        None
+    } else {
+        Some(position.saturating_sub(origin))
+    }
+}
+
+fn clock_from_frames(elapsed: Option<u32>, total: u32, fps: u32) -> PlaybackClock {
+    let total_text = frames_text(total, fps);
+    let Some(elapsed) = elapsed else {
+        return PlaybackClock {
+            current: String::new(),
+            remaining: String::new(),
+            total: total_text,
+            progress: 0,
+        };
+    };
+    let remain = total.saturating_sub(elapsed);
+    PlaybackClock {
+        current: frames_text(elapsed, fps),
+        remaining: format!("-{}", frames_text(remain, fps)),
+        total: total_text,
+        progress: percent_of(elapsed.min(total), total),
+    }
+}
+
+fn duration_frames(raw: &str, fps: u32) -> Option<u32> {
+    parse_timecode(raw).map(|time| time.to_frames(fps))
+}
+
+fn frames_text(frames: u32, fps: u32) -> String {
+    short_timecode(&Timecode::from_frames(frames, fps).to_string())
+}
+
+fn parse_timecode(raw: &str) -> Option<Timecode> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let normalized = trimmed.replace(';', ":");
+    Timecode::parse(&normalized).ok()
+}
+
+/// Integer frame count from a transport or slot `video format` token.
+///
+/// Fractional rates use the timecode frame count (`29.97` is 30). `None` when
+/// the deck has not reported a format this plugin can read.
+fn reported_fps(snap: &DeckSnapshot) -> Option<u32> {
+    let transport = snap.transport_value("video format").trim();
+    let token = if transport.is_empty() {
+        snap.slot_value("video format").trim()
+    } else {
+        transport
+    };
+    if token.is_empty() {
+        None
+    } else {
+        integer_fps(token)
+    }
+}
+
+fn integer_fps(token: &str) -> Option<u32> {
+    match token {
+        "NTSC" => Some(30),
+        "PAL" => Some(25),
+        "NTSCp" => Some(60),
+        "PALp" => Some(50),
+        _ => match VideoFormat::parse_ethernet(token).ok()? {
+            VideoFormat::Raster { rate, .. } => Some(rate.integer_fps()),
+            VideoFormat::Sd(_) => None,
+        },
+    }
+}
+
+/// `HH:MM:SS:FF` for a jog offset.
+///
+/// One frame is `:01` in every format. A larger step needs the deck's frame
+/// rate, because the frame field rolls into seconds at that rate.
+fn jog_timecode(frames: u32, fps: Option<u32>) -> Option<String> {
+    match fps {
+        Some(fps) if fps > 0 => Some(Timecode::from_frames(frames, fps).to_string()),
+        _ if (1..24).contains(&frames) => Some(format!("00:00:00:{frames:02}")),
+        _ => None,
+    }
 }
 
 fn step_of(kind: ActionKind, params: &ActionParams) -> i32 {
@@ -820,7 +1047,10 @@ fn display_timecode(snap: &DeckSnapshot) -> String {
     short_timecode(raw)
 }
 
-/// `HH:MM:SS:FF` shown as `mm:ss:ff`. Hours appear only when they are greater than zero.
+/// `HH:MM:SS:FF` shown as `mm:ss`. Hours appear only when they are greater than zero.
+///
+/// Frame counts stay off the key. The transport poll is slower than one frame,
+/// so a frame field would usually be stale.
 fn short_timecode(raw: &str) -> String {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -843,17 +1073,11 @@ fn short_timecode(raw: &str) -> String {
     if !hours_ok || !rest_ok || !frames_ok {
         return trimmed.to_string();
     }
-    let frames = if parts.len() == 4 {
-        let separator = if body.contains(';') { ';' } else { ':' };
-        format!("{separator}{}", parts[3])
-    } else {
-        String::new()
-    };
     let hours: u32 = parts[0].parse().unwrap_or(0);
     let shown = if hours > 0 {
-        format!("{hours:02}:{}:{}{frames}", parts[1], parts[2])
+        format!("{hours:02}:{}:{}", parts[1], parts[2])
     } else {
-        format!("{}:{}{frames}", parts[1], parts[2])
+        format!("{}:{}", parts[1], parts[2])
     };
     format!("{sign}{shown}")
 }
@@ -867,13 +1091,29 @@ fn recording_time(snap: &DeckSnapshot) -> String {
     }
 }
 
-fn recording_seconds(snap: &DeckSnapshot) -> u64 {
-    snap.slot_value("recording time")
-        .split_whitespace()
+fn recording_seconds(raw: &str) -> u64 {
+    raw.split_whitespace()
         .next()
         .unwrap_or("")
         .parse()
         .unwrap_or(0)
+}
+
+/// Recording time and remaining size, using only the strings the deck sent.
+fn remaining_title(recording_time: &str, remaining_size: &str) -> String {
+    let time = if recording_time.is_empty() {
+        String::new()
+    } else if recording_time.bytes().all(|byte| byte.is_ascii_digit()) {
+        format!("{recording_time}s")
+    } else {
+        short_timecode(recording_time)
+    };
+    match (time.is_empty(), remaining_size.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => time,
+        (true, false) => remaining_size.to_string(),
+        (false, false) => format!("{time} {remaining_size}"),
+    }
 }
 
 fn playrange_title(snap: &DeckSnapshot) -> String {
@@ -963,6 +1203,33 @@ mod tests {
     }
 
     #[test]
+    fn remaining_title_uses_the_recording_time_the_deck_sent() {
+        let params = ActionParams::default();
+        let mut snap = DeckSnapshot::default();
+        snap.slot.insert("recording time".into(), "3600".into());
+        snap.slot.insert("remaining size".into(), "1000".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "3600s 1000");
+        assert!(!shown.active);
+
+        snap.slot.insert("recording time".into(), "30".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "30s 1000");
+        assert!(shown.active);
+
+        snap.slot
+            .insert("recording time".into(), "00:01:02:03".into());
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "01:02 1000");
+        assert!(!shown.active);
+
+        snap.slot.remove("recording time");
+        let shown = face(ActionKind::Remaining, &params, &snap);
+        assert_eq!(shown.title, "1000");
+        assert!(!shown.active);
+    }
+
+    #[test]
     fn play_toggles_and_record_hold_spills() {
         let stopped = snap_status("stopped", "0");
         let play = commands(
@@ -1008,45 +1275,105 @@ mod tests {
     }
 
     #[test]
-    fn displayed_timecode_keeps_frames_and_hides_zero_hours() {
-        assert_eq!(short_timecode("00:01:23:04"), "01:23:04");
-        assert_eq!(short_timecode("00:00:05;12"), "00:05;12");
-        assert_eq!(short_timecode("01:02:03:04"), "01:02:03:04");
-        assert_eq!(short_timecode("10:00:00:00"), "10:00:00:00");
+    fn displayed_timecode_hides_frames_and_zero_hours() {
+        assert_eq!(short_timecode("00:01:23:04"), "01:23");
+        assert_eq!(short_timecode("00:00:05;12"), "00:05");
+        assert_eq!(short_timecode("01:02:03:04"), "01:02:03");
+        assert_eq!(short_timecode("10:00:00:00"), "10:00:00");
+        assert_eq!(short_timecode("-00:00:06:00"), "-00:06");
         assert_eq!(short_timecode(""), "");
         assert_eq!(short_timecode("stopped"), "stopped");
         let mut snap = snap_status("play", "100");
         snap.transport
             .insert("display timecode".into(), "00:04:05:06".into());
         let shown = face(ActionKind::Jog, &ActionParams::default(), &snap);
-        assert_eq!(shown.title, "04:05:06");
+        assert_eq!(shown.title, "Jog\u{1e}\u{1e}\u{1e}\u{1e}CLIP");
     }
 
     #[test]
-    fn stopped_play_speed_starts_at_one_x() {
+    fn play_speed_follows_the_reported_speed() {
         let snap = snap_status("stopped", "0");
         let params = ActionParams::default();
         let shown = face(ActionKind::PlaySpeed, &params, &snap);
-        assert_eq!(shown.title, "1.00x");
+        assert_eq!(shown.title, "0.00x");
+        assert_eq!(shown.indicator, 0);
         let sent = commands(ActionKind::PlaySpeed, &params, &snap, Gesture::Rotate(1));
-        assert_eq!(sent, vec!["play: speed: 101\r\n".to_string()]);
+        assert_eq!(sent, vec!["play: speed: 1\r\n".to_string()]);
         let playing = snap_status("play", "200");
         let shown = face(ActionKind::PlaySpeed, &params, &playing);
         assert_eq!(shown.title, "2.00x");
+        let sent = commands(ActionKind::PlaySpeed, &params, &playing, Gesture::Rotate(1));
+        assert_eq!(sent, vec!["play: speed: 201\r\n".to_string()]);
+    }
+
+    #[test]
+    fn jog_uses_the_reported_frame_rate() {
+        let params = ActionParams {
+            step: 30,
+            ..ActionParams::default()
+        };
+        let mut snap = snap_status("stopped", "0");
+        snap.transport
+            .insert("video format".into(), "1080p2997".into());
+        let sent = commands(ActionKind::Jog, &params, &snap, Gesture::Rotate(1));
+        assert_eq!(sent, vec!["jog: timecode: +00:00:01:00\r\n".to_string()]);
+
+        snap.transport
+            .insert("video format".into(), "1080p24".into());
+        let sent = commands(ActionKind::Jog, &params, &snap, Gesture::Rotate(-1));
+        assert_eq!(sent, vec!["jog: timecode: -00:00:01:06\r\n".to_string()]);
+
+        snap.transport
+            .insert("video format".into(), "1080i5994".into());
+        let minute = ActionParams {
+            step: 60,
+            ..ActionParams::default()
+        };
+        let sent = commands(ActionKind::Jog, &minute, &snap, Gesture::Rotate(60));
+        assert_eq!(sent, vec!["jog: timecode: +00:01:00:00\r\n".to_string()]);
+
+        let unknown = snap_status("stopped", "0");
+        let one = commands(
+            ActionKind::Jog,
+            &ActionParams::default(),
+            &unknown,
+            Gesture::Rotate(1),
+        );
+        assert_eq!(one, vec!["jog: timecode: +00:00:00:01\r\n".to_string()]);
+        let guessed = commands(ActionKind::Jog, &params, &unknown, Gesture::Rotate(1));
+        assert!(guessed.is_empty());
+    }
+
+    #[test]
+    fn position_bar_uses_a_numeric_duration_only() {
+        let mut snap = snap_status("play", "100");
+        snap.transport.insert("timeline".into(), "50".into());
+        snap.playrange
+            .insert("timeline out".into(), "00:10:00:00".into());
+        let params = ActionParams::default();
+        let shown = face(ActionKind::Position, &params, &snap);
+        assert_eq!(shown.indicator, 0);
+        snap.playrange.insert("timeline out".into(), "200".into());
+        let shown = face(ActionKind::Position, &params, &snap);
+        assert_eq!(shown.indicator, 25);
     }
 
     #[test]
     fn clip_list_steps_and_plays_the_current_clip() {
         let mut snap = DeckSnapshot::default();
         snap.transport.insert("clip id".into(), "3".into());
+        snap.transport
+            .insert("display timecode".into(), "01:02:03:04".into());
         snap.clips = vec![
             hyperdeck_pool::ClipRow {
                 id: "1".into(),
                 name: "slate".into(),
+                ..hyperdeck_pool::ClipRow::default()
             },
             hyperdeck_pool::ClipRow {
                 id: "3".into(),
                 name: "interview".into(),
+                ..hyperdeck_pool::ClipRow::default()
             },
         ];
         let params = ActionParams::default();
@@ -1061,17 +1388,106 @@ mod tests {
             Gesture::Press(PressKind::Single),
         );
         assert_eq!(play, vec!["play: clip id: 3\r\n".to_string()]);
-        let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
-        assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "3\u{1e}interview");
-        assert_eq!(shown.indicator, 100);
+        assert_eq!(shown.title, "interview\u{1e}\u{1e}\u{1e}\u{1e}CLIP");
+        assert_eq!(shown.indicator, 0);
     }
 
     #[test]
-    fn empty_audio_channels_start_at_two() {
-        let snap = DeckSnapshot::default();
+    fn clip_countdown_uses_the_frame_offset_inside_the_clip() {
         let params = ActionParams::default();
+        let mut snap = DeckSnapshot::default();
+        snap.transport.insert("status".into(), "play".into());
+        snap.transport.insert("clip id".into(), "2".into());
+        snap.transport
+            .insert("video format".into(), "1080p25".into());
+        snap.transport
+            .insert("timecode".into(), "01:00:04:00".into());
+        snap.transport.insert("timeline".into(), "100".into());
+        snap.clips = vec![
+            hyperdeck_pool::ClipRow {
+                id: "1".into(),
+                name: "slate".into(),
+                duration: "00:00:10:00".into(),
+                ..hyperdeck_pool::ClipRow::default()
+            },
+            hyperdeck_pool::ClipRow {
+                id: "2".into(),
+                name: "interview".into(),
+                start: "01:00:00:00".into(),
+                duration: "00:00:10:00".into(),
+                timeline_in: "00:00:10:00".into(),
+                timeline_out: "00:00:20:00".into(),
+            },
+        ];
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:04\u{1e}-00:06\u{1e}00:10\u{1e}CLIP"
+        );
+        assert_eq!(shown.indicator, 40);
+
+        snap.transport
+            .insert("timecode".into(), "10:00:00:00".into());
+        snap.transport
+            .insert("timeline position".into(), "350".into());
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:04\u{1e}-00:06\u{1e}00:10\u{1e}CLIP"
+        );
+
+        snap.transport.remove("timeline");
+        snap.transport.remove("timeline position");
+        snap.transport
+            .insert("display timecode".into(), "01:00:04:00".into());
+        let shown = face(ActionKind::Jog, &params, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:04\u{1e}-00:06\u{1e}00:10\u{1e}CLIP"
+        );
+
+        snap.transport.insert("timeline".into(), "100".into());
+        let timeline = ActionParams {
+            time_basis: "timeline".into(),
+            ..ActionParams::default()
+        };
+        snap.transport
+            .insert("timeline position".into(), "350".into());
+        let shown = face(ActionKind::Jog, &timeline, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:14\u{1e}-00:06\u{1e}00:20\u{1e}TL"
+        );
+        assert_eq!(shown.indicator, 70);
+
+        snap.transport.insert("status".into(), "record".into());
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(shown.title, "interview\u{1e}\u{1e}\u{1e}\u{1e}CLIP");
+        snap.transport.insert("status".into(), "play".into());
+        snap.transport.remove("video format");
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(shown.title, "interview\u{1e}\u{1e}\u{1e}\u{1e}CLIP");
+    }
+
+    #[test]
+    fn audio_channels_follow_the_reported_count() {
+        let params = ActionParams::default();
+        let snap = DeckSnapshot::default();
+        let shown = face(ActionKind::AudioChannels, &params, &snap);
+        assert_eq!(shown.title, "");
+        assert_eq!(shown.indicator, 0);
+        let sent = commands(
+            ActionKind::AudioChannels,
+            &params,
+            &snap,
+            Gesture::Rotate(1),
+        );
+        assert!(sent.is_empty());
+
+        let mut snap = DeckSnapshot::default();
+        snap.config
+            .insert("audio input channels".into(), "2".into());
         let shown = face(ActionKind::AudioChannels, &params, &snap);
         assert_eq!(shown.title, "2");
         let sent = commands(
@@ -1084,7 +1500,6 @@ mod tests {
             sent,
             vec!["configuration: audio input channels: 4\r\n".to_string()]
         );
-        assert_eq!(ActionParams::default().range_count, "1");
     }
 
     #[test]

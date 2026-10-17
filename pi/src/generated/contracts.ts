@@ -2,7 +2,7 @@
 
 export type ActionSettings = { common: CommonSettings, advanced: AdvancedSettings, shared: ActionParams, params: { [key in string]?: ActionParams }, };
 
-export type ActionParams = { speed: number, loopPlayback: boolean, singleClip: boolean, name: string, slotId: string, device: string, clipId: string, commandMode: string, rangeCount: string, rangeIn: string, rangeOut: string, gotoMode: string, timecode: string, mode: string, value: string, thresholdSeconds: number, statusField: string, raw: string, rawRotateUp: string, rawRotateDown: string, rawPush: string, rawTouch: string, step: number, direction: string, activeColor: string, confirm: boolean, slateReel: string, slateScene: string, slateTake: string, slateProject: string, slateLens: string, nasUrl: string, nasUser: string, nasPassword: string, };
+export type ActionParams = { speed: number, loopPlayback: boolean, singleClip: boolean, name: string, slotId: string, device: string, clipId: string, commandMode: string, rangeCount: string, rangeIn: string, rangeOut: string, gotoMode: string, timecode: string, mode: string, value: string, thresholdSeconds: number, statusField: string, timeBasis: string, raw: string, rawRotateUp: string, rawRotateDown: string, rawPush: string, step: number, direction: string, activeColor: string, confirm: boolean, slateReel: string, slateScene: string, slateTake: string, slateProject: string, slateLens: string, nasUrl: string, nasUser: string, nasPassword: string, };
 
 export type AdvancedSettings = { longPress: boolean, longPressMs: number, };
 
@@ -14,5 +14,5 @@ export type TargetSelector = { "kind": "all" } | { "kind": "group", id: string, 
 
 export type TargetGroup = { id: string, name: string, members: Array<string>, };
 
-export type InstanceConfig = { id: string, name: string, host: string, port: number, color: string, enabled: boolean, username: string, password: string, };
+export type InstanceConfig = { id: string, name: string, host: string, port: number, color: string, enabled: boolean, username: string, password: string, updateIntervalMs: number, };
 

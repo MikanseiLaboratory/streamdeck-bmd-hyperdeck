@@ -25,6 +25,8 @@ pub struct InstanceConfig {
     pub username: String,
     #[serde(default)]
     pub password: String,
+    #[serde(default = "default_update_interval_ms")]
+    pub update_interval_ms: u32,
 }
 
 fn default_host() -> String {
@@ -43,6 +45,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_update_interval_ms() -> u32 {
+    hyperdeck_pool::DEFAULT_UPDATE_INTERVAL_MS
+}
+
 impl From<InstanceConfig> for HyperDeckInstanceConfig {
     fn from(value: InstanceConfig) -> Self {
         Self {
@@ -54,6 +60,7 @@ impl From<InstanceConfig> for HyperDeckInstanceConfig {
             enabled: value.enabled,
             username: value.username,
             password: value.password,
+            update_interval_ms: value.update_interval_ms,
         }
     }
 }
@@ -115,6 +122,7 @@ pub fn localhost_instance() -> InstanceConfig {
         enabled: true,
         username: String::new(),
         password: String::new(),
+        update_interval_ms: default_update_interval_ms(),
     }
 }
 
@@ -225,6 +233,8 @@ pub struct ActionParams {
     pub threshold_seconds: u32,
     #[serde(default = "default_status_field")]
     pub status_field: String,
+    #[serde(default = "default_time_basis")]
+    pub time_basis: String,
     #[serde(default)]
     pub raw: String,
     #[serde(default)]
@@ -233,8 +243,6 @@ pub struct ActionParams {
     pub raw_rotate_down: String,
     #[serde(default)]
     pub raw_push: String,
-    #[serde(default)]
-    pub raw_touch: String,
     #[serde(default)]
     pub step: i32,
     #[serde(default = "default_direction")]
@@ -273,6 +281,10 @@ fn default_status_field() -> String {
     "status".into()
 }
 
+fn default_time_basis() -> String {
+    "clip".into()
+}
+
 fn default_goto() -> String {
     "timeline-start".into()
 }
@@ -305,11 +317,11 @@ impl Default for ActionParams {
             value: String::new(),
             threshold_seconds: default_threshold(),
             status_field: default_status_field(),
+            time_basis: default_time_basis(),
             raw: String::new(),
             raw_rotate_up: String::new(),
             raw_rotate_down: String::new(),
             raw_push: String::new(),
-            raw_touch: String::new(),
             step: 0,
             direction: default_direction(),
             active_color: String::new(),

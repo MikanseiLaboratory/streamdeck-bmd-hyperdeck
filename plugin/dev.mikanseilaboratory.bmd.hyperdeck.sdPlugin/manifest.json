@@ -3,7 +3,7 @@
   "Name": "HyperDeck [MikanseiLaboratory]",
   "Author": "未完成成果物研究所",
   "Description": "Control any number of named HyperDeck decks from Stream Deck.",
-  "Version": "0.1.0.0",
+  "Version": "0.2.0.0",
   "Icon": "images/icon",
   "Category": "HyperDeck [MikanseiLaboratory]",
   "CategoryIcon": "images/icon",
@@ -97,50 +97,6 @@
       "Name": "Preview",
       "Icon": "images/icon",
       "Tooltip": "Toggle preview.",
-      "PropertyInspectorPath": "propertyinspector/index.html",
-      "States": [
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        },
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        }
-      ],
-      "Controllers": [
-        "Keypad"
-      ]
-    },
-    {
-      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.loop",
-      "Name": "Loop",
-      "Icon": "images/icon",
-      "Tooltip": "Toggle loop playback.",
-      "PropertyInspectorPath": "propertyinspector/index.html",
-      "States": [
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        },
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        }
-      ],
-      "Controllers": [
-        "Keypad"
-      ]
-    },
-    {
-      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.singleclip",
-      "Name": "Single Clip",
-      "Icon": "images/icon",
-      "Tooltip": "Toggle single clip playback.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -944,8 +900,7 @@
         "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Shuttle",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -953,7 +908,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.jog",
       "Name": "Jog",
       "Icon": "images/icon",
-      "Tooltip": "Jog by frames. Press to stop.",
+      "Tooltip": "Jog by frames. Shows clip time: now, remaining, and total. Choose timeline time in the inspector. Press to stop.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -966,11 +921,10 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial.json",
+        "layout": "layouts/dial-countdown.json",
         "TriggerDescription": {
           "Rotate": "Jog",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -994,8 +948,7 @@
         "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Play Speed",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -1019,8 +972,7 @@
         "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Position",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -1044,8 +996,7 @@
         "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Audio Channels",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -1053,7 +1004,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
       "Name": "Clip List",
       "Icon": "images/icon",
-      "Tooltip": "Shows the current clip name. Rotate to another clip. Press to play. Touch to stop.",
+      "Tooltip": "Shows the file name and clip time: now, remaining, and total. Choose timeline time in the inspector. Rotate to another clip. Press to play.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -1066,11 +1017,10 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial.json",
+        "layout": "layouts/dial-countdown.json",
         "TriggerDescription": {
           "Rotate": "Clip List",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     },
@@ -1094,8 +1044,7 @@
         "layout": "layouts/dial.json",
         "TriggerDescription": {
           "Rotate": "Raw Dial",
-          "Push": "Press",
-          "Touch": "Touch"
+          "Push": "Press"
         }
       }
     }

@@ -32,6 +32,10 @@ pub struct Segment {
 pub const LAYOUT_DIAL: &str = "layouts/dial.json";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
+/// Current time, large countdown, and total for one deck.
+pub const LAYOUT_TIMES: &str = "layouts/dial-countdown.json";
+/// The same readout for two to four decks.
+pub const LAYOUT_TIMES_MULTI: &str = "layouts/dial-times-multi.json";
 
 /// `0` when every band is active. Stream Deck state 0 is the lit state.
 pub fn hardware_state(states: impl IntoIterator<Item = SegmentState>) -> i32 {
@@ -97,6 +101,9 @@ pub fn dial_feedback(
     levels: &[u8],
     foreground: &str,
 ) -> (String, Value) {
+    if kind == ActionKind::ClipList || kind == ActionKind::Jog {
+        return times_feedback(segments, captions, levels);
+    }
     let icon = dial_icon(kind, foreground);
     if segments.len() <= 1 {
         let segment = segments.first();
@@ -116,14 +123,8 @@ pub fn dial_feedback(
         let title = captions
             .iter()
             .take(4)
-            .map(|caption| {
-                if kind == ActionKind::ClipList {
-                    dial_text(kind, caption).0
-                } else {
-                    caption.clone()
-                }
-            })
-            .filter(|caption| !caption.is_empty() && caption != kind.dial_heading())
+            .filter(|caption| !caption.is_empty() && caption.as_str() != kind.dial_heading())
+            .cloned()
             .collect::<Vec<_>>()
             .join(" · ");
         let mut payload = json!({ "title": title });
@@ -137,24 +138,63 @@ pub fn dial_feedback(
     }
 }
 
-fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
-    if kind == ActionKind::ClipList {
-        let (id, name) = caption.split_once('\u{1e}').unwrap_or(("", caption));
-        let title = if !name.is_empty() {
-            name.to_string()
-        } else if !id.is_empty() {
-            id.to_string()
-        } else {
-            kind.dial_heading().to_string()
-        };
-        let value = if id.is_empty() {
-            String::new()
-        } else {
-            id.to_string()
-        };
-        return (title, value);
+fn times_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) -> (String, Value) {
+    if segments.len() <= 1 {
+        let caption = captions.first().map(String::as_str).unwrap_or("");
+        let (filename, now, left, total, basis) = time_fields(caption);
+        let level = levels.first().copied().unwrap_or(0);
+        return (
+            LAYOUT_TIMES.to_string(),
+            json!({
+                "filename": filename,
+                "basis": basis,
+                "nowLabel": "Now",
+                "totalLabel": "Total",
+                "now": now,
+                "left": left,
+                "total": total,
+                "indicator": indicator(segments.first(), level),
+            }),
+        );
     }
+    let mut payload = serde_json::Map::new();
+    for index in 0..4 {
+        let text = captions.get(index).map(|caption| {
+            let (filename, now, left, total, _) = time_fields(caption);
+            time_line(&filename, &now, &left, &total)
+        });
+        payload.insert(
+            format!("line{}", index + 1),
+            json!(text.unwrap_or_default()),
+        );
+    }
+    (LAYOUT_TIMES_MULTI.to_string(), Value::Object(payload))
+}
+
+fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
     (kind.dial_heading().to_string(), caption.to_string())
+}
+
+/// File name, current time, remaining time, total time, and basis label.
+fn time_fields(caption: &str) -> (String, String, String, String, String) {
+    let mut parts = caption.split('\u{1e}');
+    let name = parts.next().unwrap_or("").to_string();
+    let now = parts.next().unwrap_or("").to_string();
+    let left = parts.next().unwrap_or("").to_string();
+    let total = parts.next().unwrap_or("").to_string();
+    let basis = parts.next().unwrap_or("").to_string();
+    (name, now, left, total, basis)
+}
+
+fn time_line(name: &str, now: &str, left: &str, total: &str) -> String {
+    let slot = |value: &str| {
+        if value.is_empty() {
+            "–".to_string()
+        } else {
+            value.to_string()
+        }
+    };
+    format!("{}  {}  {}  {}", name, slot(now), slot(left), slot(total))
 }
 
 fn indicator(segment: Option<&Segment>, level: u8) -> Value {
@@ -212,9 +252,7 @@ fn icon_path(kind: ActionKind) -> &'static str {
         }
         ActionKind::Stop => r#"<rect x="18" y="18" width="28" height="28"/>"#,
         ActionKind::Preview => r#"<rect x="12" y="18" width="40" height="28" rx="4"/>"#,
-        ActionKind::Loop | ActionKind::SingleClip | ActionKind::PlayRange => {
-            r#"<path d="M18 32a14 14 0 1 0 4-10M18 16v10h10"/>"#
-        }
+        ActionKind::PlayRange => r#"<path d="M18 32a14 14 0 1 0 4-10M18 16v10h10"/>"#,
         ActionKind::Slot | ActionKind::SlotUnblock | ActionKind::ExternalDrive => {
             r#"<rect x="14" y="16" width="36" height="28" rx="4"/>"#
         }
@@ -321,12 +359,46 @@ mod tests {
         let (layout, payload) = dial_feedback(
             ActionKind::ClipList,
             std::slice::from_ref(&one),
-            &["3\u{1e}interview".into()],
-            &[100],
+            &["interview.mov\u{1e}01:23\u{1e}-00:06\u{1e}00:10\u{1e}CLIP".into()],
+            &[40],
             "#f4f7fb",
         );
-        assert_eq!(layout, LAYOUT_DIAL);
-        assert_eq!(payload["title"], "interview");
-        assert_eq!(payload["value"], "3");
+        assert_eq!(layout, LAYOUT_TIMES);
+        assert_eq!(payload["filename"], "interview.mov");
+        assert_eq!(payload["now"], "01:23");
+        assert_eq!(payload["left"], "-00:06");
+        assert_eq!(payload["total"], "00:10");
+        assert_eq!(payload["basis"], "CLIP");
+        assert_eq!(payload["nowLabel"], "Now");
+        assert_eq!(payload["indicator"]["value"], 40);
+        assert!(payload.get("title").is_none());
+
+        let (layout, payload) = dial_feedback(
+            ActionKind::Jog,
+            std::slice::from_ref(&one),
+            &["interview.mov\u{1e}00:14\u{1e}-00:06\u{1e}00:20\u{1e}TL".into()],
+            &[70],
+            "#f4f7fb",
+        );
+        assert_eq!(layout, LAYOUT_TIMES);
+        assert_eq!(payload["basis"], "TL");
+        assert_eq!(payload["now"], "00:14");
+        assert_eq!(payload["total"], "00:20");
+
+        let (layout, payload) = dial_feedback(
+            ActionKind::ClipList,
+            &two,
+            &[
+                "interview.mov\u{1e}01:23\u{1e}-00:06\u{1e}00:10\u{1e}CLIP".into(),
+                "slate.mov\u{1e}\u{1e}\u{1e}00:10\u{1e}CLIP".into(),
+            ],
+            &[40, 0],
+            "#f4f7fb",
+        );
+        assert_eq!(layout, LAYOUT_TIMES_MULTI);
+        assert_eq!(payload["line1"], "interview.mov  01:23  -00:06  00:10");
+        assert_eq!(payload["line2"], "slate.mov  –  –  00:10");
+        assert_eq!(payload["line3"], "");
+        assert!(payload.get("title").is_none());
     }
 }

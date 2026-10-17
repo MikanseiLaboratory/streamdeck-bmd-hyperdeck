@@ -18,14 +18,6 @@
     "Name": "プレビュー",
     "Tooltip": "プレビュー表示の切り替え"
   },
-  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
-    "Name": "ループ",
-    "Tooltip": "ループ再生の切り替え"
-  },
-  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
-    "Name": "シングルクリップ",
-    "Tooltip": "単一クリップ再生の切り替え"
-  },
   "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
     "Name": "スロット",
     "Tooltip": "アクティブスロットの選択"
@@ -184,7 +176,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.jog": {
     "Name": "ジョグ",
-    "Tooltip": "フレーム単位のジョグ送り（押し込みで停止）"
+    "Tooltip": "フレーム単位のジョグ送り。クリップの現在・残り・総合時間を表示（タイムライン時間は設定で選択、押し込みで停止）"
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.playspeed": {
     "Name": "再生速度",
@@ -200,7 +192,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
     "Name": "クリップ選択",
-    "Tooltip": "クリップ一覧を前後に移動（押し込みで再生、タッチで停止）"
+    "Tooltip": "ファイル名とクリップの現在・残り・総合時間を表示。タイムライン時間は設定で選択。回転で前後のクリップ、押し込みで再生。"
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
     "Name": "Rawコマンドダイヤル",
