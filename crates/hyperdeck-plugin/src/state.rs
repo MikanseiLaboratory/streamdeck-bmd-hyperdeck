@@ -150,6 +150,7 @@ impl AppState {
         );
         drop(keys);
         self.refresh_key(context).await;
+        self.mark_catalog_open().await;
     }
 
     /// Forget a key that left the profile.

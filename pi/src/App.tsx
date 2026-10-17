@@ -136,11 +136,14 @@ export function App() {
 
   useEffect(() => {
     for (const listener of listenersRef.current) listener(statuses);
+  }, [statuses]);
+
+  useEffect(() => {
     const child = configWindowRef.current;
     if (child && !child.closed && child.opener === window) {
-      child.refreshHyperdeckConfig?.(settingsRef.current, statuses);
+      child.refreshHyperdeckConfig?.(settingsRef.current, statusRef.current);
     }
-  }, [statuses, global.settings]);
+  }, [global.settings]);
 
   useEffect(() => {
     send({ type: "ready" });
@@ -237,69 +240,78 @@ function TargetPicker({
   value: TargetSelector;
   onChange: (value: TargetSelector) => void;
 }) {
-  const mode = value.kind === "group" ? "group" : value.kind === "instances" ? "instances" : "all";
+  const [preferMultiple, setPreferMultiple] = useState(value.kind === "instances" && value.ids.length !== 1);
+  useEffect(() => {
+    if (value.kind !== "instances") setPreferMultiple(false);
+  }, [value]);
+  const mode = preferMultiple ? "multiple" : targetMode(value);
+  const selected = value.kind === "instances" ? value.ids : [];
+  const missingGroup = value.kind === "group" && !groups.some((group) => group.id === value.id);
+  const missingInstance =
+    value.kind === "instances" && value.ids.length === 1 && !instances.some((instance) => instance.id === value.ids[0]);
   return (
     <>
-      <div className="sdpi-item">
+      <div type="select" className="sdpi-item">
         <div className="sdpi-item-label">Send to</div>
         <select
           className="sdpi-item-value select"
           value={mode}
           onChange={(event) => {
             const next = event.target.value;
-            if (next === "all") onChange({ kind: "all" });
-            if (next === "group") onChange({ kind: "group", id: groups[0]?.id ?? "" });
-            if (next === "instances") onChange({ kind: "instances", ids: instances[0] ? [instances[0].id] : [] });
+            setPreferMultiple(next === "multiple");
+            onChange(selectorFromMode(next, selected));
           }}
         >
           <option value="all">All enabled</option>
-          <option value="group">Group</option>
-          <option value="instances">Selected decks</option>
+          {groups.map((group) => (
+            <option key={group.id} value={`group:${group.id}`}>
+              Group: {group.name || "Untitled"}
+            </option>
+          ))}
+          {missingGroup && value.kind === "group" && <option value={`group:${value.id}`}>Missing group</option>}
+          {instances.map((instance) => (
+            <option key={instance.id} value={`instance:${instance.id}`}>
+              {instance.name || instance.host}
+              {instance.enabled ? "" : " (disabled)"}
+            </option>
+          ))}
+          {missingInstance && value.kind === "instances" && (
+            <option value={`instance:${value.ids[0]}`}>Missing deck</option>
+          )}
+          <option value="multiple">Multiple decks</option>
         </select>
       </div>
-      {value.kind === "group" && (
-        <div className="sdpi-item">
-          <div className="sdpi-item-label">Group</div>
-          <select
-            className="sdpi-item-value select"
-            value={value.id}
-            onChange={(event) => onChange({ kind: "group", id: event.target.value })}
-          >
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name || group.id}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      {value.kind === "instances" &&
-        instances.map((instance) => {
-          const status = statuses.find((item) => item.id === instance.id)?.status?.kind;
-          return (
-            <div className="sdpi-item" key={instance.id}>
-              <div className="sdpi-item-label">{status ?? ""}</div>
-              <div className="sdpi-item-value">
-                <span className="sdpi-item-child">
+      {mode === "multiple" && (
+        <div type="checkbox" className="sdpi-item targets">
+          <div className="sdpi-item-label">Decks</div>
+          <div className="sdpi-item-value">
+            {instances.length === 0 && <span>No decks yet</span>}
+            {instances.map((instance) => {
+              const id = `target-${instance.id}`;
+              const on = selected.includes(instance.id);
+              const status = statuses.find((item) => item.id === instance.id)?.status?.kind;
+              return (
+                <div className="sdpi-item-child" key={instance.id}>
                   <input
+                    id={id}
                     type="checkbox"
-                    checked={value.ids.includes(instance.id)}
-                    onChange={(event) => {
-                      const ids = event.target.checked
-                        ? [...value.ids, instance.id]
-                        : value.ids.filter((id) => id !== instance.id);
+                    checked={on}
+                    onChange={() => {
+                      const ids = on ? selected.filter((item) => item !== instance.id) : [...selected, instance.id];
                       onChange({ kind: "instances", ids });
                     }}
                   />
-                  <label>
-                    <span className="swatch" style={{ background: instance.color }} />
+                  <label htmlFor={id}>
+                    <span></span>
+                    <i className="swatch" style={{ background: statusColor(status, instance.color) }} />
                     {instance.name || instance.host}
                   </label>
-                </span>
-              </div>
-            </div>
-          );
-        })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -324,7 +336,8 @@ function Fields({
   const shared = settings.common?.sharedParams !== false;
   const targeted = targetedIds(instances, groups, target);
   const [editor, setEditor] = useState(targeted[0] ?? "");
-  const params = shared ? settings.shared : settings.params?.[editor] ?? settings.shared;
+  const activeEditor = targeted.includes(editor) ? editor : (targeted[0] ?? "");
+  const params = shared ? settings.shared : settings.params?.[activeEditor] ?? settings.shared;
   const clips = uniqueClips(decks);
   const update = (patch: Partial<ActionParams>) => {
     setSettings((previous) => {
@@ -335,7 +348,7 @@ function Fields({
         ...previous,
         params: {
           ...previous.params,
-          [editor]: { ...(previous.params?.[editor] ?? previous.shared), ...patch }
+          [activeEditor]: { ...(previous.params?.[activeEditor] ?? previous.shared), ...patch }
         }
       };
     });
@@ -343,7 +356,7 @@ function Fields({
   return (
     <>
       {!shared && (
-        <SelectRow label="Edit" value={editor} onChange={setEditor}>
+        <SelectRow label="Edit" value={activeEditor} onChange={setEditor}>
           {targeted.map((id) => (
             <option key={id} value={id}>
               {instances.find((item) => item.id === id)?.name || id}
@@ -603,27 +616,59 @@ function CheckRow({
   text: string;
   onChange: (checked: boolean) => void;
 }) {
+  const id = `check-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <div className="sdpi-item">
+    <div type="checkbox" className="sdpi-item">
       <div className="sdpi-item-label">{label}</div>
-      <div className="sdpi-item-value">
-        <span className="sdpi-item-child">
-          <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-          <label>{text}</label>
-        </span>
-      </div>
+      <input id={id} className="sdpi-item-value" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <label htmlFor={id}>
+        <span></span>
+        {text}
+      </label>
     </div>
   );
 }
 
-function targetedIds(instances: InstanceConfig[], groups: TargetGroup[], target: TargetSelector): string[] {
-  const enabled = instances.filter((instance) => instance.enabled);
-  if (target.kind === "all") return enabled.map((instance) => instance.id);
-  if (target.kind === "group") {
-    const group = groups.find((item) => item.id === target.id);
-    return (group?.members ?? []).filter((id) => enabled.some((instance) => instance.id === id));
+function targetMode(value: TargetSelector) {
+  if (value.kind === "all") return "all";
+  if (value.kind === "group") return `group:${value.id}`;
+  if (value.ids.length === 1) return `instance:${value.ids[0]}`;
+  return "multiple";
+}
+
+function selectorFromMode(mode: string, selected: string[]): TargetSelector {
+  if (mode === "all") return { kind: "all" };
+  if (mode === "multiple") return { kind: "instances", ids: selected };
+  if (mode.startsWith("group:")) return { kind: "group", id: mode.slice("group:".length) };
+  if (mode.startsWith("instance:")) return { kind: "instances", ids: [mode.slice("instance:".length)] };
+  return { kind: "all" };
+}
+
+function statusColor(kind: string | undefined, fallback: string) {
+  switch (kind) {
+    case "connected":
+      return "#3cba7a";
+    case "connecting":
+      return "#e2b15a";
+    case "disconnected":
+      return "#8a4a3a";
+    case "disabled":
+      return "#6d7890";
+    default:
+      return fallback;
   }
-  return target.ids.filter((id) => enabled.some((instance) => instance.id === id));
+}
+
+function targetedIds(instances: InstanceConfig[], groups: TargetGroup[], target: TargetSelector): string[] {
+  if (target.kind === "group") {
+    const members = new Set(groups.find((item) => item.id === target.id)?.members ?? []);
+    return instances.filter((instance) => members.has(instance.id)).map((instance) => instance.id);
+  }
+  if (target.kind === "instances") {
+    const ids = new Set(target.ids);
+    return instances.filter((instance) => ids.has(instance.id)).map((instance) => instance.id);
+  }
+  return instances.filter((instance) => instance.enabled).map((instance) => instance.id);
 }
 
 function uniqueClips(decks: CatalogDeck[]) {

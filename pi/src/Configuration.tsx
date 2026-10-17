@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LiveInstance } from "./bridge";
 import type { GlobalSettings, InstanceConfig, TargetGroup } from "./generated/contracts";
 
@@ -17,9 +17,18 @@ export function Configuration() {
   const [statuses, setStatuses] = useState<LiveInstance[]>([]);
   const [ready, setReady] = useState(false);
   const [missing, setMissing] = useState(false);
+  const settingsRef = useRef(settings);
+
+  const commit = (recipe: (current: GlobalSettings) => GlobalSettings) => {
+    const next = recipe(settingsRef.current);
+    settingsRef.current = next;
+    setSettings(next);
+    window.opener?.hyperdeckConfig?.setSettings(next);
+  };
 
   useEffect(() => {
     window.refreshHyperdeckConfig = (next, instances) => {
+      settingsRef.current = next;
       setSettings(next);
       setStatuses(instances);
       setReady(true);
@@ -34,7 +43,9 @@ export function Configuration() {
     const attach = () => {
       const bridge = window.opener?.hyperdeckConfig;
       if (!bridge) return false;
-      setSettings(bridge.getSettings());
+      const loaded = bridge.getSettings();
+      settingsRef.current = loaded;
+      setSettings(loaded);
       unsubscribe = bridge.subscribe(setStatuses);
       setReady(true);
       return true;
@@ -55,13 +66,7 @@ export function Configuration() {
     };
   }, []);
 
-  const commit = (next: GlobalSettings) => {
-    setSettings(next);
-    window.opener?.hyperdeckConfig?.setSettings(next);
-  };
-
   const instances = settings.instances ?? [];
-  const updateInstances = (next: InstanceConfig[]) => commit({ ...settings, instances: next });
 
   if (missing) {
     return (
@@ -92,12 +97,22 @@ export function Configuration() {
               instance={instance}
               index={index}
               status={statuses.find((item) => item.id === instance.id)}
-              onChange={(next) => {
-                const copy = instances.slice();
-                copy[index] = next;
-                updateInstances(copy);
-              }}
-              onRemove={() => updateInstances(instances.filter((_, item) => item !== index))}
+              onChange={(next) =>
+                commit((current) => ({
+                  ...current,
+                  instances: current.instances.map((item) => (item.id === instance.id ? next : item))
+                }))
+              }
+              onRemove={() =>
+                commit((current) => ({
+                  ...current,
+                  instances: current.instances.filter((item) => item.id !== instance.id),
+                  groups: (current.groups ?? []).map((group) => ({
+                    ...group,
+                    members: group.members.filter((id) => id !== instance.id)
+                  }))
+                }))
+              }
               onReconnect={() => window.opener?.hyperdeckConfig?.reconnect(instance.id)}
             />
           ))}
@@ -106,28 +121,37 @@ export function Configuration() {
           <button
             type="button"
             onClick={() =>
-              updateInstances([
-                ...instances,
-                {
-                  id: crypto.randomUUID(),
-                  name: `HyperDeck ${instances.length + 1}`,
-                  host: "127.0.0.1",
-                  port: 9993,
-                  color: PALETTE[instances.length % PALETTE.length],
-                  enabled: true,
-                  username: "",
-                  password: ""
-                }
-              ])
+              commit((current) => ({
+                ...current,
+                instances: [
+                  ...current.instances,
+                  {
+                    id: crypto.randomUUID(),
+                    name: `HyperDeck ${current.instances.length + 1}`,
+                    host: "127.0.0.1",
+                    port: 9993,
+                    color: PALETTE[current.instances.length % PALETTE.length],
+                    enabled: true,
+                    username: "",
+                    password: ""
+                  }
+                ]
+              }))
             }
+            disabled={!ready}
           >
             Add HyperDeck
           </button>
-          <button type="button" onClick={() => window.opener?.hyperdeckConfig?.reconnect()}>
+          <button type="button" disabled={!ready} onClick={() => window.opener?.hyperdeckConfig?.reconnect()}>
             Reconnect all
           </button>
         </div>
-        <Groups instances={instances} groups={settings.groups ?? []} setGroups={(groups) => commit({ ...settings, groups })} />
+        <Groups
+          instances={instances}
+          groups={settings.groups ?? []}
+          ready={ready}
+          setGroups={(recipe) => commit((current) => ({ ...current, groups: recipe(current.groups ?? []) }))}
+        />
         <div className="sdpi-heading">Plugin</div>
         <div className="sdpi-item">
           <div className="sdpi-item-label">Hold</div>
@@ -136,7 +160,7 @@ export function Configuration() {
             type="number"
             value={settings.longPressMs}
             aria-label="Long press milliseconds"
-            onChange={(event) => commit({ ...settings, longPressMs: Number(event.target.value) })}
+            onChange={(event) => commit((current) => ({ ...current, longPressMs: Number(event.target.value) }))}
           />
         </div>
         <div className="sdpi-item">
@@ -146,7 +170,7 @@ export function Configuration() {
             type="color"
             value={settings.fgColor}
             aria-label="Foreground"
-            onChange={(event) => commit({ ...settings, fgColor: event.target.value })}
+            onChange={(event) => commit((current) => ({ ...current, fgColor: event.target.value }))}
           />
         </div>
       </div>
@@ -229,47 +253,70 @@ function InstanceCard({
 function Groups({
   instances,
   groups,
+  ready,
   setGroups
 }: {
   instances: InstanceConfig[];
   groups: TargetGroup[];
-  setGroups: (groups: TargetGroup[]) => void;
+  ready: boolean;
+  setGroups: (recipe: (groups: TargetGroup[]) => TargetGroup[]) => void;
 }) {
   return (
     <>
       <div className="sdpi-heading">Groups</div>
-      {groups.map((group, index) => (
-        <section className="obs-card" key={group.id}>
-          <label className="field">
-            Name
+      {ready && groups.length === 0 && <p className="empty-note">No groups yet. Add one to send a key to several decks.</p>}
+      {groups.map((group) => (
+        <section className="group-card" key={group.id}>
+          <div className="sdpi-item">
+            <div className="sdpi-item-label">Name</div>
             <input
+              className="sdpi-item-value"
               value={group.name}
               onChange={(event) => {
-                const copy = groups.slice();
-                copy[index] = { ...group, name: event.target.value };
-                setGroups(copy);
+                const name = event.target.value;
+                setGroups((current) => current.map((item) => (item.id === group.id ? { ...item, name } : item)));
               }}
             />
-          </label>
-          {instances.map((instance) => (
-            <label className="field check" key={instance.id}>
-              <input
-                type="checkbox"
-                checked={group.members.includes(instance.id)}
-                onChange={(event) => {
-                  const members = event.target.checked
-                    ? [...group.members, instance.id]
-                    : group.members.filter((id) => id !== instance.id);
-                  const copy = groups.slice();
-                  copy[index] = { ...group, members };
-                  setGroups(copy);
-                }}
-              />
-              {instance.name || instance.host}
-            </label>
-          ))}
+          </div>
+          <div type="checkbox" className="sdpi-item targets">
+            <div className="sdpi-item-label">Members</div>
+            <div className="sdpi-item-value">
+              {instances.length === 0 && <span>No decks yet</span>}
+              {instances.map((instance) => {
+                const id = `group-${group.id}-${instance.id}`;
+                const on = group.members.includes(instance.id);
+                return (
+                  <div className="sdpi-item-child" key={instance.id}>
+                    <input
+                      id={id}
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => {
+                        setGroups((current) =>
+                          current.map((item) => {
+                            if (item.id !== group.id) return item;
+                            const members = on
+                              ? item.members.filter((member) => member !== instance.id)
+                              : item.members.includes(instance.id)
+                                ? item.members
+                                : [...item.members, instance.id];
+                            return { ...item, members };
+                          })
+                        );
+                      }}
+                    />
+                    <label htmlFor={id}>
+                      <span></span>
+                      <i className="swatch" style={{ background: instance.color }} />
+                      {instance.name || instance.host}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           <div className="card-actions">
-            <button type="button" onClick={() => setGroups(groups.filter((_, item) => item !== index))}>
+            <button type="button" onClick={() => setGroups((current) => current.filter((item) => item.id !== group.id))}>
               Remove group
             </button>
           </div>
@@ -278,8 +325,12 @@ function Groups({
       <div className="card-actions">
         <button
           type="button"
+          disabled={!ready}
           onClick={() =>
-            setGroups([...groups, { id: crypto.randomUUID(), name: `Group ${groups.length + 1}`, members: [] }])
+            setGroups((current) => [
+              ...current,
+              { id: crypto.randomUUID(), name: `Group ${current.length + 1}`, members: [] }
+            ])
           }
         >
           Add group
