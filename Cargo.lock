@@ -735,6 +735,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "hyperdeck-pool",
+ "hyperdeck-tokio",
  "serde",
  "serde_json",
  "streamdeck-plugin",

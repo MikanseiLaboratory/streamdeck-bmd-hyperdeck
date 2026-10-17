@@ -469,7 +469,7 @@ impl Link {
             "external drive selected\r\n",
         ] {
             match self.roundtrip(query.as_bytes().to_vec()).await {
-                Ok(message) => self.apply_message(message).await,
+                Ok(_) => {}
                 Err(error @ (CallError::Closed | CallError::Timeout)) => return Err(error),
                 Err(error) => {
                     tracing::debug!(id = %self.id, %error, query, "hyperdeck query skipped");
@@ -600,7 +600,11 @@ impl Link {
             match event {
                 ClientEvent::Response(raw) => {
                     self.waiting = false;
-                    response = Some(decode(&raw)?);
+                    let message = decode(&raw)?;
+                    if !message.is_failure() {
+                        self.apply_message(message.clone()).await;
+                    }
+                    response = Some(message);
                 }
                 ClientEvent::Notification(raw) | ClientEvent::ConnectionInfo(raw) => {
                     self.apply_notice(&raw).await?;
@@ -618,9 +622,12 @@ impl Link {
 
     async fn apply_message(&mut self, message: DeckMessage) {
         let coalesced = is_timecode(&message);
-        {
+        let changed = {
             let mut snapshot = self.snapshot.lock().await;
-            snapshot.apply(&message);
+            snapshot.apply(&message)
+        };
+        if !changed {
+            return;
         }
         if coalesced {
             self.coalesce = true;
@@ -774,5 +781,17 @@ mod tests {
         wait_connected(&pool).await;
         pool.call("deck", "record", &[]).await.unwrap();
         assert_eq!(pool.snapshot("deck").await.unwrap().status(), "record");
+    }
+
+    #[tokio::test]
+    async fn handshake_query_response_fills_the_snapshot() {
+        let demo = listen().await;
+        let pool = HyperDeckPool::new(PoolOptions::for_tests());
+        pool.reconcile(vec![config(demo.addr)], Vec::new()).await;
+        wait_connected(&pool).await;
+        let snapshot = pool.snapshot("deck").await.unwrap();
+        assert_eq!(snapshot.transport_value("video format"), "1080p2997");
+        assert_eq!(snapshot.model, "HyperDeck Rust");
+        assert!(!snapshot.config_value("audio input").is_empty());
     }
 }

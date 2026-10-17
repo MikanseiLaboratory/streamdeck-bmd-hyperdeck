@@ -23,11 +23,9 @@ struct Press {
 struct LiveKey {
     kind: ActionKind,
     settings: ActionSettings,
-    segments: HashMap<String, SegmentState>,
-    titles: HashMap<String, String>,
-    indicators: HashMap<String, u8>,
-    title: String,
     multi: bool,
+    /// Layout last accepted by Stream Deck. Sent again only when it changes.
+    layout: String,
 }
 
 struct Runtime {
@@ -35,7 +33,6 @@ struct Runtime {
     keys: Mutex<HashMap<String, LiveKey>>,
     presses: Mutex<HashMap<String, Press>>,
     global: Mutex<GlobalSettings>,
-    errors: Mutex<HashMap<(String, String), String>>,
     dirty: Mutex<HashSet<String>>,
     dirty_notify: Notify,
     inspectors: Mutex<HashSet<String>>,
@@ -74,7 +71,6 @@ impl AppState {
                 keys: Mutex::new(HashMap::new()),
                 presses: Mutex::new(HashMap::new()),
                 global: Mutex::new(GlobalSettings::default()),
-                errors: Mutex::new(HashMap::new()),
                 dirty: Mutex::new(HashSet::new()),
                 dirty_notify: Notify::new(),
                 inspectors: Mutex::new(HashSet::new()),
@@ -131,24 +127,15 @@ impl AppState {
         settings: ActionSettings,
         multi: bool,
     ) {
-        let mut keys = self.runtime.keys.lock().await;
-        let previous = keys.remove(context);
-        let (segments, titles, indicators) = previous
-            .map(|key| (key.segments, key.titles, key.indicators))
-            .unwrap_or_default();
-        keys.insert(
+        self.runtime.keys.lock().await.insert(
             context.to_string(),
             LiveKey {
                 kind,
                 settings,
-                segments,
-                titles,
-                indicators,
-                title: String::new(),
                 multi,
+                layout: String::new(),
             },
         );
-        drop(keys);
         self.refresh_key(context).await;
         self.mark_catalog_open().await;
     }
@@ -293,45 +280,10 @@ impl AppState {
         });
     }
 
-    /// Recompute bands and titles from the pool cache.
+    /// Schedule a repaint. The picture is read from the deck snapshots when it is drawn.
     pub async fn refresh_key(&self, context: &str) {
-        let Some((kind, settings)) = self.key_settings(context).await else {
+        if self.key_settings(context).await.is_none() {
             return;
-        };
-        let targets = self.targets_for(&settings).await;
-        let failed = self.failed_ids(context).await;
-        let mut segments = HashMap::new();
-        let mut titles = HashMap::new();
-        let mut indicators = HashMap::new();
-        for id in &targets {
-            let snapshot = self.pool.snapshot(id).await.unwrap_or_default();
-            let connected = matches!(
-                self.pool.status(id).await,
-                Some(ConnectionStatus::Connected)
-            ) && snapshot.connected;
-            let params = settings.params_for(id);
-            let face = ops::face(kind, params, &snapshot);
-            let state = if !connected {
-                SegmentState::Disconnected
-            } else if failed.contains(id) {
-                SegmentState::Error
-            } else if face.active {
-                SegmentState::Active
-            } else {
-                SegmentState::Off
-            };
-            segments.insert(id.clone(), state);
-            if !face.title.trim().is_empty() {
-                titles.insert(id.clone(), face.title);
-            }
-            indicators.insert(id.clone(), face.indicator);
-        }
-        let title = join_titles(&targets, &titles);
-        if let Some(key) = self.runtime.keys.lock().await.get_mut(context) {
-            key.segments = segments;
-            key.titles = titles;
-            key.indicators = indicators;
-            key.title = title;
         }
         self.mark_dirty(context).await;
     }
@@ -349,19 +301,15 @@ impl AppState {
             if commands.is_empty() {
                 continue;
             }
-            let mut failed = None;
+            let mut failed = false;
             for command in &commands {
                 if let Err(error) = self.pool.call_raw(id, command.as_bytes()).await {
-                    failed = Some(error.to_string());
+                    tracing::warn!(id, %error, "hyperdeck command failed");
+                    failed = true;
                     break;
                 }
             }
-            let mut errors = self.runtime.errors.lock().await;
-            if let Some(message) = failed {
-                tracing::warn!(id, %message, "hyperdeck command failed");
-                errors.insert((context.to_string(), id.clone()), message);
-            } else {
-                errors.remove(&(context.to_string(), id.clone()));
+            if !failed {
                 any_ok = true;
             }
         }
@@ -401,7 +349,7 @@ impl AppState {
         let Some(sender) = self.runtime.sender.lock().await.clone() else {
             return;
         };
-        let (kind, settings, segments, titles, indicators, title, multi) = {
+        let (kind, settings, multi, sent_layout) = {
             let keys = self.runtime.keys.lock().await;
             let Some(key) = keys.get(context) else {
                 return;
@@ -409,51 +357,49 @@ impl AppState {
             (
                 key.kind,
                 key.settings.clone(),
-                key.segments.clone(),
-                key.titles.clone(),
-                key.indicators.clone(),
-                key.title.clone(),
                 key.multi,
+                key.layout.clone(),
             )
         };
         let global = self.runtime.global.lock().await.clone();
         let targets = self.targets_for(&settings).await;
-        let visual: Vec<Segment> = targets
-            .iter()
-            .map(|id| {
-                let instance = global.instances.iter().find(|item| item.id == *id);
-                let state = segments
-                    .get(id)
-                    .copied()
-                    .unwrap_or(SegmentState::Disconnected);
-                let params = settings.params_for(id);
-                let mut color = instance
-                    .map(|item| item.color.clone())
-                    .unwrap_or_else(|| "#4c8dff".into());
-                if state == SegmentState::Active && !params.active_color.trim().is_empty() {
-                    color = params.active_color.trim().to_string();
-                }
-                Segment {
-                    label: instance
-                        .map(|item| item.name.clone())
-                        .unwrap_or_else(|| id.clone()),
-                    color,
-                    state,
-                }
-            })
-            .collect();
+        let mut visual = Vec::with_capacity(targets.len());
+        let mut captions = Vec::with_capacity(targets.len());
+        let mut levels = Vec::with_capacity(targets.len());
+        let mut titles = HashMap::new();
+        for id in &targets {
+            let appearance = self.appearance(kind, &settings, id).await;
+            let instance = global.instances.iter().find(|item| item.id == *id);
+            let params = settings.params_for(id);
+            let mut color = instance
+                .map(|item| item.color.clone())
+                .unwrap_or_else(|| "#4c8dff".into());
+            if appearance.state == SegmentState::Active && !params.active_color.trim().is_empty() {
+                color = params.active_color.trim().to_string();
+            }
+            visual.push(Segment {
+                label: instance
+                    .map(|item| item.name.clone())
+                    .unwrap_or_else(|| id.clone()),
+                color,
+                state: appearance.state,
+            });
+            captions.push(appearance.title.clone());
+            levels.push(appearance.indicator);
+            if !appearance.title.trim().is_empty() {
+                titles.insert(id.clone(), appearance.title);
+            }
+        }
+        let title = join_titles(&targets, &titles);
         if kind.is_dial() {
-            let captions: Vec<String> = targets
-                .iter()
-                .map(|id| titles.get(id).cloned().unwrap_or_default())
-                .collect();
-            let levels: Vec<u8> = targets
-                .iter()
-                .map(|id| indicators.get(id).copied().unwrap_or(0))
-                .collect();
             let (layout, payload) =
                 render::dial_feedback(kind, &visual, &captions, &levels, &global.fg_color);
-            let _ = sender.set_feedback_layout(context, &layout);
+            if sent_layout != layout
+                && sender.set_feedback_layout(context, &layout).is_ok()
+                && let Some(key) = self.runtime.keys.lock().await.get_mut(context)
+            {
+                key.layout = layout;
+            }
             let _ = sender.set_feedback(context, &payload);
             return;
         }
@@ -562,15 +508,30 @@ impl AppState {
         Some((key.kind, key.settings.clone()))
     }
 
-    async fn failed_ids(&self, context: &str) -> HashSet<String> {
-        self.runtime
-            .errors
-            .lock()
-            .await
-            .iter()
-            .filter(|(key, _)| key.0 == context)
-            .map(|(key, _)| key.1.clone())
-            .collect()
+    async fn appearance(
+        &self,
+        kind: ActionKind,
+        settings: &ActionSettings,
+        id: &str,
+    ) -> Appearance {
+        let snapshot = self.pool.snapshot(id).await.unwrap_or_default();
+        let connected = matches!(
+            self.pool.status(id).await,
+            Some(ConnectionStatus::Connected)
+        ) && snapshot.connected;
+        let face = ops::face(kind, settings.params_for(id), &snapshot);
+        let state = if !connected {
+            SegmentState::Disconnected
+        } else if face.active {
+            SegmentState::Active
+        } else {
+            SegmentState::Off
+        };
+        Appearance {
+            state,
+            title: face.title,
+            indicator: face.indicator,
+        }
     }
 
     async fn mark_dirty(&self, context: &str) {
@@ -632,13 +593,19 @@ impl AppState {
 
     #[cfg(test)]
     async fn segment_state(&self, context: &str, id: &str) -> Option<SegmentState> {
-        self.runtime
-            .keys
-            .lock()
-            .await
-            .get(context)
-            .and_then(|key| key.segments.get(id).copied())
+        let (kind, settings) = self.key_settings(context).await?;
+        let targets = self.targets_for(&settings).await;
+        if !targets.iter().any(|target| target == id) {
+            return None;
+        }
+        Some(self.appearance(kind, &settings, id).await.state)
     }
+}
+
+struct Appearance {
+    state: SegmentState,
+    title: String,
+    indicator: u8,
 }
 
 fn join_titles(targets: &[String], titles: &HashMap<String, String>) -> String {

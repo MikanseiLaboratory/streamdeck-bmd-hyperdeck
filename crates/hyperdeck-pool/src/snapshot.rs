@@ -12,7 +12,7 @@ pub struct ClipRow {
     pub name: String,
 }
 
-/// Cached deck state built from queries and notifications.
+/// Fields received from the deck. Queries and notifications both land here.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeckSnapshot {
@@ -84,8 +84,14 @@ impl DeckSnapshot {
         })
     }
 
-    /// Fold one server message into the cache.
-    pub fn apply(&mut self, message: &DeckMessage) {
+    /// Fold one server message into the cache. `true` when a field changed.
+    pub fn apply(&mut self, message: &DeckMessage) -> bool {
+        let previous = self.clone();
+        self.fold(message);
+        self != &previous
+    }
+
+    fn fold(&mut self, message: &DeckMessage) {
         let text = message.text.to_ascii_lowercase();
         if message.code == 500 || text.contains("connection info") {
             if let Some(model) = message.get("model") {
