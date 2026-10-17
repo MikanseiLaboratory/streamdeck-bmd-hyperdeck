@@ -233,6 +233,8 @@ pub struct ActionParams {
     pub threshold_seconds: u32,
     #[serde(default = "default_status_field")]
     pub status_field: String,
+    #[serde(default = "default_time_basis")]
+    pub time_basis: String,
     #[serde(default)]
     pub raw: String,
     #[serde(default)]
@@ -279,6 +281,10 @@ fn default_status_field() -> String {
     "status".into()
 }
 
+fn default_time_basis() -> String {
+    "clip".into()
+}
+
 fn default_goto() -> String {
     "timeline-start".into()
 }
@@ -311,6 +317,7 @@ impl Default for ActionParams {
             value: String::new(),
             threshold_seconds: default_threshold(),
             status_field: default_status_field(),
+            time_basis: default_time_basis(),
             raw: String::new(),
             raw_rotate_up: String::new(),
             raw_rotate_down: String::new(),

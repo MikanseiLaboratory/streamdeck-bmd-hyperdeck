@@ -184,7 +184,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.jog": {
     "Name": "Jog",
-    "Tooltip": "Jog by frames. Shows the current clip's remaining time. Press to stop."
+    "Tooltip": "Jog by frames. Shows clip time: now, remaining, and total. Choose timeline time in the inspector. Press to stop."
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.playspeed": {
     "Name": "Play Speed",
@@ -200,7 +200,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
     "Name": "Clip List",
-    "Tooltip": "Shows the current file name, timecode, and clip time remaining. Rotate to another clip. Press to play."
+    "Tooltip": "Shows the file name and clip time: now, remaining, and total. Choose timeline time in the inspector. Rotate to another clip. Press to play."
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
     "Name": "Raw Dial",

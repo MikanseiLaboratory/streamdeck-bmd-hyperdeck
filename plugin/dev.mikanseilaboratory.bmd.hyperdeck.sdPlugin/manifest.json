@@ -952,7 +952,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.jog",
       "Name": "Jog",
       "Icon": "images/icon",
-      "Tooltip": "Jog by frames. Shows the current clip's remaining time. Press to stop.",
+      "Tooltip": "Jog by frames. Shows clip time: now, remaining, and total. Choose timeline time in the inspector. Press to stop.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -965,7 +965,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial-jog.json",
+        "layout": "layouts/dial-times.json",
         "TriggerDescription": {
           "Rotate": "Jog",
           "Push": "Press"
@@ -1048,7 +1048,7 @@
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.cliplist",
       "Name": "Clip List",
       "Icon": "images/icon",
-      "Tooltip": "Shows the current file name, timecode, and clip time remaining. Rotate to another clip. Press to play.",
+      "Tooltip": "Shows the file name and clip time: now, remaining, and total. Choose timeline time in the inspector. Rotate to another clip. Press to play.",
       "PropertyInspectorPath": "propertyinspector/index.html",
       "States": [
         {
@@ -1061,7 +1061,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial-clip-remaining.json",
+        "layout": "layouts/dial-times.json",
         "TriggerDescription": {
           "Rotate": "Clip List",
           "Push": "Press"

@@ -1,36 +1,36 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
-  "id": "dev.mikanseilaboratory.bmd.hyperdeck.dial-clip-multi",
+  "id": "dev.mikanseilaboratory.bmd.hyperdeck.dial-times-multi",
   "items": [
     {
       "key": "line1",
       "type": "text",
-      "rect": [8, 2, 184, 24],
-      "font": { "size": 14, "weight": 600 },
+      "rect": [6, 2, 188, 22],
+      "font": { "size": 12, "weight": 600 },
       "alignment": "left",
       "text-overflow": "ellipsis"
     },
     {
       "key": "line2",
       "type": "text",
-      "rect": [8, 26, 184, 24],
-      "font": { "size": 14, "weight": 600 },
+      "rect": [6, 26, 188, 22],
+      "font": { "size": 12, "weight": 600 },
       "alignment": "left",
       "text-overflow": "ellipsis"
     },
     {
       "key": "line3",
       "type": "text",
-      "rect": [8, 50, 184, 24],
-      "font": { "size": 14, "weight": 600 },
+      "rect": [6, 50, 188, 22],
+      "font": { "size": 12, "weight": 600 },
       "alignment": "left",
       "text-overflow": "ellipsis"
     },
     {
       "key": "line4",
       "type": "text",
-      "rect": [8, 74, 184, 24],
-      "font": { "size": 14, "weight": 600 },
+      "rect": [6, 74, 188, 22],
+      "font": { "size": 12, "weight": 600 },
       "alignment": "left",
       "text-overflow": "ellipsis"
     }

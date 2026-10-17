@@ -39,6 +39,7 @@ const emptyParams = (): ActionParams => ({
   value: "",
   thresholdSeconds: 60,
   statusField: "status",
+  timeBasis: "clip",
   raw: "",
   rawRotateUp: "",
   rawRotateDown: "",
@@ -489,6 +490,16 @@ function Fields({
         />
       )}
       {kind === "raw" && <AreaRow label="Command" value={params.raw} onChange={(raw) => update({ raw })} />}
+      {(kind === "jog" || kind === "cliplist") && (
+        <SelectRow
+          label="Time"
+          value={params.timeBasis || "clip"}
+          onChange={(timeBasis) => update({ timeBasis })}
+        >
+          <option value="clip">Clip</option>
+          <option value="timeline">Timeline</option>
+        </SelectRow>
+      )}
       {["shuttle", "jog", "cliplist", "playspeed", "position", "audiochannels"].includes(kind) && (
         <NumberRow
           label="Step"

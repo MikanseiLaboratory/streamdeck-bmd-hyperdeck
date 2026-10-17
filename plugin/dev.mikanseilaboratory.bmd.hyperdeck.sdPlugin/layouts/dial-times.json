@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "dev.mikanseilaboratory.bmd.hyperdeck.dial-times",
+  "items": [
+    {
+      "key": "filename",
+      "type": "text",
+      "rect": [8, 2, 146, 18],
+      "font": { "size": 13, "weight": 600 },
+      "alignment": "left",
+      "text-overflow": "ellipsis"
+    },
+    {
+      "key": "basis",
+      "type": "text",
+      "rect": [156, 4, 36, 14],
+      "font": { "size": 10, "weight": 700 },
+      "alignment": "right",
+      "value": "CLIP"
+    },
+    {
+      "key": "nowLabel",
+      "type": "text",
+      "rect": [8, 22, 60, 12],
+      "font": { "size": 9, "weight": 600 },
+      "alignment": "left",
+      "value": "Now"
+    },
+    {
+      "key": "leftLabel",
+      "type": "text",
+      "rect": [70, 22, 60, 12],
+      "font": { "size": 9, "weight": 600 },
+      "alignment": "center",
+      "value": "Left"
+    },
+    {
+      "key": "totalLabel",
+      "type": "text",
+      "rect": [132, 22, 60, 12],
+      "font": { "size": 9, "weight": 600 },
+      "alignment": "right",
+      "value": "Total"
+    },
+    {
+      "key": "now",
+      "type": "text",
+      "rect": [8, 36, 60, 22],
+      "font": { "size": 13, "weight": 700 },
+      "alignment": "left"
+    },
+    {
+      "key": "left",
+      "type": "text",
+      "rect": [68, 36, 64, 22],
+      "font": { "size": 13, "weight": 700 },
+      "alignment": "center"
+    },
+    {
+      "key": "total",
+      "type": "text",
+      "rect": [132, 36, 60, 22],
+      "font": { "size": 13, "weight": 700 },
+      "alignment": "right"
+    },
+    {
+      "key": "indicator",
+      "type": "bar",
+      "rect": [8, 70, 184, 12],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    }
+  ]
+}
