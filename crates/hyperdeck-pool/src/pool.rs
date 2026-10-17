@@ -452,11 +452,24 @@ impl Link {
         self.roundtrip(b"remote: override: true\r\n".to_vec())
             .await?;
         self.roundtrip(notify_command()).await?;
+        match self.roundtrip(b"clips get: version: 2\r\n".to_vec()).await {
+            Ok(_) => {}
+            Err(error @ (CallError::Closed | CallError::Timeout)) => return Err(error),
+            Err(error) => {
+                tracing::debug!(id = %self.id, %error, "clips get version 2 skipped");
+                match self.roundtrip(b"clips get\r\n".to_vec()).await {
+                    Ok(_) => {}
+                    Err(error @ (CallError::Closed | CallError::Timeout)) => return Err(error),
+                    Err(error) => {
+                        tracing::debug!(id = %self.id, %error, "clips get skipped");
+                    }
+                }
+            }
+        }
         for query in [
             "device info\r\n",
             "transport info\r\n",
             "slot info\r\n",
-            "clips get\r\n",
             "disk list\r\n",
             "configuration\r\n",
             "playrange\r\n",

@@ -205,7 +205,7 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
         }
         ActionKind::Jog => Face {
             active: status == "jog",
-            title: timecode,
+            title: format!("{timecode}\u{1e}{}", playback_remaining(snap)),
             indicator: 0,
         },
         ActionKind::PlaySpeed => {
@@ -679,11 +679,95 @@ fn clip_title(snap: &DeckSnapshot) -> String {
 /// Dial caption: clip id, file name, and display timecode, split by a record separator.
 fn clip_list_caption(snap: &DeckSnapshot) -> String {
     format!(
-        "{}\u{1e}{}\u{1e}{}",
+        "{}\u{1e}{}\u{1e}{}\u{1e}{}",
         current_clip_id(snap),
         snap.clip_name(),
-        display_timecode(snap)
+        display_timecode(snap),
+        playback_remaining(snap)
     )
+}
+
+/// Time left in the current clip, from the deck's out point and timeline timecode.
+///
+/// Empty when the clip row, the frame rate, or the position timecode was not received.
+/// `timeline position` advances the last `timecode`/`timeline` pair. A record
+/// transport does not use this clock.
+fn playback_remaining(snap: &DeckSnapshot) -> String {
+    if snap.status() == "record" {
+        return String::new();
+    }
+    let id = current_clip_id(snap);
+    if id.is_empty() {
+        return String::new();
+    }
+    let Some(clip) = snap.clips.iter().find(|clip| clip.id == id) else {
+        return String::new();
+    };
+    let Some(fps) = reported_fps(snap) else {
+        return String::new();
+    };
+    let Some((in_frames, end_frames)) = clip_span(clip, snap, fps) else {
+        return String::new();
+    };
+    let Some(position) = timeline_position_frames(snap, fps) else {
+        return String::new();
+    };
+    if clip.timeline_out.trim().is_empty() {
+        let duration = end_frames.saturating_sub(in_frames);
+        let past = position.saturating_sub(end_frames);
+        let before = in_frames.saturating_sub(position);
+        if past > duration || before > duration {
+            return String::new();
+        }
+    }
+    let from = position.max(in_frames);
+    let remain = end_frames.saturating_sub(from);
+    let text = Timecode::from_frames(remain, fps).to_string();
+    format!("-{}", short_timecode(&text))
+}
+
+fn clip_span(clip: &hyperdeck_pool::ClipRow, snap: &DeckSnapshot, fps: u32) -> Option<(u32, u32)> {
+    if let Some(out) = parse_timecode(&clip.timeline_out) {
+        let end = out.to_frames(fps);
+        let start = parse_timecode(&clip.timeline_in)
+            .map(|point| point.to_frames(fps))
+            .or_else(|| {
+                parse_timecode(&clip.duration)
+                    .map(|duration| end.saturating_sub(duration.to_frames(fps)))
+            })
+            .unwrap_or(0);
+        return Some((start, end));
+    }
+    let output = snap.config_value("timecode output").trim();
+    if output.eq_ignore_ascii_case("clip")
+        || (!output.is_empty() && !output.eq_ignore_ascii_case("timeline"))
+    {
+        return None;
+    }
+    let start = parse_timecode(&clip.start)?.to_frames(fps);
+    let duration = parse_timecode(&clip.duration)?.to_frames(fps);
+    Some((start, start.saturating_add(duration)))
+}
+
+fn timeline_position_frames(snap: &DeckSnapshot, fps: u32) -> Option<u32> {
+    let base = parse_timecode(snap.transport_value("timecode"))?.to_frames(fps);
+    let Some(origin) = snap.transport_value("timeline").parse::<u32>().ok() else {
+        return Some(base);
+    };
+    let live = snap
+        .transport_value("timeline position")
+        .parse::<u32>()
+        .unwrap_or(origin);
+    Some(base.saturating_add(live).saturating_sub(origin))
+}
+
+fn parse_timecode(raw: &str) -> Option<Timecode> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let normalized = trimmed.replace(';', ":");
+    Timecode::parse(&normalized).ok()
 }
 
 fn clip_indicator(snap: &DeckSnapshot) -> u8 {
@@ -1099,7 +1183,7 @@ mod tests {
         snap.transport
             .insert("display timecode".into(), "00:04:05:06".into());
         let shown = face(ActionKind::Jog, &ActionParams::default(), &snap);
-        assert_eq!(shown.title, "04:05:06");
+        assert_eq!(shown.title, "04:05:06\u{1e}");
     }
 
     #[test]
@@ -1180,10 +1264,12 @@ mod tests {
             hyperdeck_pool::ClipRow {
                 id: "1".into(),
                 name: "slate".into(),
+                ..hyperdeck_pool::ClipRow::default()
             },
             hyperdeck_pool::ClipRow {
                 id: "3".into(),
                 name: "interview".into(),
+                ..hyperdeck_pool::ClipRow::default()
             },
         ];
         let params = ActionParams::default();
@@ -1201,8 +1287,42 @@ mod tests {
         let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
         assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03:04");
+        assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03:04\u{1e}");
         assert_eq!(shown.indicator, 100);
+    }
+
+    #[test]
+    fn playback_remaining_uses_the_clip_out_point_and_timeline() {
+        let params = ActionParams::default();
+        let mut snap = DeckSnapshot::default();
+        snap.transport.insert("status".into(), "play".into());
+        snap.transport.insert("clip id".into(), "1".into());
+        snap.transport
+            .insert("video format".into(), "1080p25".into());
+        snap.transport
+            .insert("timecode".into(), "00:00:04:00".into());
+        snap.transport.insert("timeline".into(), "100".into());
+        snap.clips = vec![hyperdeck_pool::ClipRow {
+            id: "1".into(),
+            name: "interview".into(),
+            start: "00:00:00:00".into(),
+            duration: "00:00:10:00".into(),
+            timeline_in: "00:00:00:00".into(),
+            timeline_out: "00:00:10:00".into(),
+        }];
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(shown.title, "1\u{1e}interview\u{1e}00:04:00\u{1e}-00:06:00");
+        snap.transport
+            .insert("timeline position".into(), "125".into());
+        let shown = face(ActionKind::Jog, &params, &snap);
+        assert_eq!(shown.title, "00:04:00\u{1e}-00:05:00");
+        snap.transport.insert("status".into(), "record".into());
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert!(shown.title.ends_with('\u{1e}'));
+        snap.transport.insert("status".into(), "play".into());
+        snap.transport.remove("video format");
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert!(shown.title.ends_with('\u{1e}'));
     }
 
     #[test]

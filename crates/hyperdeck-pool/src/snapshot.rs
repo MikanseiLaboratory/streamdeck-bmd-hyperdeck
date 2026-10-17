@@ -5,11 +5,23 @@ use serde::{Deserialize, Serialize};
 use crate::message::DeckMessage;
 
 /// One timeline or disk clip row.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClipRow {
     pub id: String,
     pub name: String,
+    /// Clip start timecode, when the row included one.
+    #[serde(default)]
+    pub start: String,
+    /// Duration timecode, when the row included one.
+    #[serde(default)]
+    pub duration: String,
+    /// Timeline in point from a version 2 or 3 row.
+    #[serde(default)]
+    pub timeline_in: String,
+    /// Timeline out point from a version 2 or 3 row.
+    #[serde(default)]
+    pub timeline_out: String,
 }
 
 /// Fields received from the deck. Queries and notifications both land here.
@@ -180,6 +192,9 @@ fn apply_transport(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
         replace_map(map, message);
         return;
     }
+    // Keep the timecode pair together. A notice that updates `timecode` and
+    // omits `timeline` must not reuse the old frame, or the delta is counted twice.
+    let timecode_omitted = message.get("timecode").is_none();
     let kept: Vec<(String, String)> = [
         "display timecode",
         "timecode",
@@ -189,10 +204,12 @@ fn apply_transport(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     .into_iter()
     .filter_map(|key| {
         if message.get(key).is_some() {
-            None
-        } else {
-            map.get(key).map(|value| (key.to_string(), value.clone()))
+            return None;
         }
+        if matches!(key, "timeline" | "timeline position") && !timecode_omitted {
+            return None;
+        }
+        map.get(key).map(|value| (key.to_string(), value.clone()))
     })
     .collect();
     replace_map(map, message);
@@ -231,6 +248,54 @@ fn merge_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     for (key, value) in &message.params {
         map.insert(key.clone(), value.clone());
     }
+}
+
+struct DescribedClip {
+    name: String,
+    start: String,
+    duration: String,
+    timeline_in: String,
+    timeline_out: String,
+}
+
+fn describe_clip_row(rest: &str) -> DescribedClip {
+    let tokens: Vec<&str> = rest.split_whitespace().collect();
+    let mut described = DescribedClip {
+        name: clip_name_from_row(rest),
+        start: String::new(),
+        duration: String::new(),
+        timeline_in: String::new(),
+        timeline_out: String::new(),
+    };
+    if tokens.is_empty() {
+        return described;
+    }
+    let name_at = tokens
+        .iter()
+        .position(|token| !is_timecode(token))
+        .unwrap_or(tokens.len());
+    if name_at >= 4 {
+        described.start = tokens[0].to_string();
+        described.duration = tokens[1].to_string();
+        described.timeline_in = tokens[2].to_string();
+        described.timeline_out = tokens[3].to_string();
+        return described;
+    }
+    if name_at == 2 {
+        described.start = tokens[0].to_string();
+        described.duration = tokens[1].to_string();
+        return described;
+    }
+    let last = tokens.len() - 1;
+    if tokens.len() >= 3 && is_timecode(tokens[last]) && is_timecode(tokens[last - 1]) {
+        described.start = tokens[last - 1].to_string();
+        described.duration = tokens[last].to_string();
+        return described;
+    }
+    if is_timecode(tokens[last]) {
+        described.duration = tokens[last].to_string();
+    }
+    described
 }
 
 fn clip_name_from_row(rest: &str) -> String {
@@ -278,9 +343,14 @@ fn parse_rows(body: &str) -> Vec<ClipRow> {
         if id.is_empty() || !id.chars().all(|ch| ch.is_ascii_digit()) {
             continue;
         }
+        let described = describe_clip_row(rest);
         rows.push(ClipRow {
             id: id.to_string(),
-            name: clip_name_from_row(rest),
+            name: described.name,
+            start: described.start,
+            duration: described.duration,
+            timeline_in: described.timeline_in,
+            timeline_out: described.timeline_out,
         });
     }
     rows
@@ -397,6 +467,8 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.clips[0].name, "My Clip");
+        assert_eq!(snapshot.clips[0].start, "00:00:00:00");
+        assert_eq!(snapshot.clips[0].duration, "00:00:10:00");
         assert_eq!(snapshot.clips[1].name, "other.mov");
         snapshot.apply(&DeckMessage {
             code: 206,
@@ -405,6 +477,7 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.disk_clips[0].name, "clip.mov");
+        assert_eq!(snapshot.disk_clips[0].duration, "00:00:10:00");
         snapshot.apply(&DeckMessage {
             code: 205,
             text: "clips info".into(),
@@ -413,6 +486,10 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.clips[0].name, "folder/My Clip.mov");
+        assert_eq!(snapshot.clips[0].start, "00:00:00:00");
+        assert_eq!(snapshot.clips[0].duration, "00:00:10:00");
+        assert_eq!(snapshot.clips[0].timeline_in, "00:00:01:00");
+        assert_eq!(snapshot.clips[0].timeline_out, "00:00:08:00");
     }
 
     #[test]

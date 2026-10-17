@@ -36,6 +36,8 @@ pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
 pub const LAYOUT_CLIP: &str = "layouts/dial-clip.json";
 /// Clip list for two to four decks.
 pub const LAYOUT_CLIP_MULTI: &str = "layouts/dial-clip-multi.json";
+/// Jog for one deck. `remaining` is the current clip's time left.
+pub const LAYOUT_JOG: &str = "layouts/dial-jog.json";
 
 /// `0` when every band is active. Stream Deck state 0 is the lit state.
 pub fn hardware_state(states: impl IntoIterator<Item = SegmentState>) -> i32 {
@@ -104,6 +106,9 @@ pub fn dial_feedback(
     if kind == ActionKind::ClipList {
         return clip_list_feedback(segments, captions, levels);
     }
+    if kind == ActionKind::Jog {
+        return jog_feedback(segments, captions, levels, foreground);
+    }
     let icon = dial_icon(kind, foreground);
     if segments.len() <= 1 {
         let segment = segments.first();
@@ -141,13 +146,14 @@ pub fn dial_feedback(
 fn clip_list_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) -> (String, Value) {
     if segments.len() <= 1 {
         let caption = captions.first().map(String::as_str).unwrap_or("");
-        let (filename, timecode) = clip_fields(caption);
+        let (filename, timecode, remaining) = clip_fields(caption);
         let level = levels.first().copied().unwrap_or(0);
         return (
             LAYOUT_CLIP.to_string(),
             json!({
                 "filename": filename,
                 "timecode": timecode,
+                "remaining": remaining,
                 "indicator": indicator(segments.first(), level),
             }),
         );
@@ -155,8 +161,8 @@ fn clip_list_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) 
     let mut payload = serde_json::Map::new();
     for index in 0..4 {
         let text = captions.get(index).map(|caption| {
-            let (filename, timecode) = clip_fields(caption);
-            clip_line(&filename, &timecode)
+            let (filename, timecode, remaining) = clip_fields(caption);
+            clip_line(&filename, &timecode, &remaining)
         });
         payload.insert(
             format!("line{}", index + 1),
@@ -166,31 +172,85 @@ fn clip_list_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) 
     (LAYOUT_CLIP_MULTI.to_string(), Value::Object(payload))
 }
 
+fn jog_feedback(
+    segments: &[Segment],
+    captions: &[String],
+    levels: &[u8],
+    foreground: &str,
+) -> (String, Value) {
+    let icon = dial_icon(ActionKind::Jog, foreground);
+    if segments.len() <= 1 {
+        let caption = captions.first().map(String::as_str).unwrap_or("");
+        let (position, remaining) = jog_fields(caption);
+        let level = levels.first().copied().unwrap_or(0);
+        return (
+            LAYOUT_JOG.to_string(),
+            json!({
+                "title": ActionKind::Jog.dial_heading(),
+                "value": position,
+                "remaining": remaining,
+                "icon": icon,
+                "indicator": indicator(segments.first(), level),
+            }),
+        );
+    }
+    let title = captions
+        .iter()
+        .take(4)
+        .map(|caption| {
+            let (position, remaining) = jog_fields(caption);
+            match (position.is_empty(), remaining.is_empty()) {
+                (false, false) => format!("{position} {remaining}"),
+                (false, true) => position,
+                (true, false) => remaining,
+                (true, true) => String::new(),
+            }
+        })
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" · ");
+    let mut payload = json!({ "title": title });
+    for index in 0..4 {
+        payload[format!("indicator{}", index + 1)] = match segments.get(index) {
+            Some(segment) => indicator(Some(segment), levels.get(index).copied().unwrap_or(0)),
+            None => json!({ "value": 0, "enabled": false }),
+        };
+    }
+    (LAYOUT_MULTI.to_string(), payload)
+}
+
 fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
     (kind.dial_heading().to_string(), caption.to_string())
 }
 
-/// File name and display timecode from a clip-list caption.
-fn clip_fields(caption: &str) -> (String, String) {
+/// File name, display timecode, and clip remaining time from a clip-list caption.
+fn clip_fields(caption: &str) -> (String, String, String) {
     let mut parts = caption.split('\u{1e}');
     let id = parts.next().unwrap_or("");
     let name = parts.next().unwrap_or("");
     let timecode = parts.next().unwrap_or("");
+    let remaining = parts.next().unwrap_or("");
     let filename = if !name.is_empty() {
         name.to_string()
     } else {
         id.to_string()
     };
-    (filename, timecode.to_string())
+    (filename, timecode.to_string(), remaining.to_string())
 }
 
-fn clip_line(name: &str, timecode: &str) -> String {
-    match (name.is_empty(), timecode.is_empty()) {
-        (false, false) => format!("{name} {timecode}"),
-        (false, true) => name.to_string(),
-        (true, false) => timecode.to_string(),
-        (true, true) => String::new(),
-    }
+fn jog_fields(caption: &str) -> (String, String) {
+    let mut parts = caption.split('\u{1e}');
+    let position = parts.next().unwrap_or("").to_string();
+    let remaining = parts.next().unwrap_or("").to_string();
+    (position, remaining)
+}
+
+fn clip_line(name: &str, timecode: &str, remaining: &str) -> String {
+    [name, timecode, remaining]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn indicator(segment: Option<&Segment>, level: u8) -> Value {
@@ -364,7 +424,20 @@ mod tests {
         assert_eq!(layout, LAYOUT_CLIP);
         assert_eq!(payload["filename"], "interview.mov");
         assert_eq!(payload["timecode"], "01:02:03:04");
+        assert_eq!(payload["remaining"], "");
         assert!(payload.get("title").is_none());
+
+        let (layout, payload) = dial_feedback(
+            ActionKind::Jog,
+            std::slice::from_ref(&one),
+            &["00:04:00\u{1e}-00:06:00".into()],
+            &[0],
+            "#f4f7fb",
+        );
+        assert_eq!(layout, LAYOUT_JOG);
+        assert_eq!(payload["value"], "00:04:00");
+        assert_eq!(payload["remaining"], "-00:06:00");
+        assert_eq!(payload["title"], "Jog");
 
         let (layout, payload) = dial_feedback(
             ActionKind::ClipList,
