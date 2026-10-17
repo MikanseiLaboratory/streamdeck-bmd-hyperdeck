@@ -730,7 +730,7 @@ dependencies = [
 
 [[package]]
 name = "hyperdeck-plugin"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -747,7 +747,7 @@ dependencies = [
 
 [[package]]
 name = "hyperdeck-pool"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "hyperdeck-tokio",
  "serde",
