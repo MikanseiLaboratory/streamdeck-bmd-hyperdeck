@@ -102,7 +102,7 @@ impl DeckSnapshot {
             }
         }
         if message.code == 208 || message.code == 508 || text.contains("transport info") {
-            replace_map(&mut self.transport, message);
+            apply_transport(&mut self.transport, message);
         }
         if text.contains("display timecode") || text.contains("timeline position") {
             merge_map(&mut self.transport, message);
@@ -167,6 +167,38 @@ fn replace_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
     }
     map.clear();
     merge_map(map, message);
+}
+
+/// `208 transport info` replaces the transport. A `508` notice replaces the
+/// fields it carries, but an omitted playback timecode stays. That timecode
+/// arrives on its own notice, and clearing it here blanks the key until then.
+fn apply_transport(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
+    if message.params.is_empty() {
+        return;
+    }
+    if message.code == 208 {
+        replace_map(map, message);
+        return;
+    }
+    let kept: Vec<(String, String)> = [
+        "display timecode",
+        "timecode",
+        "timeline position",
+        "timeline",
+    ]
+    .into_iter()
+    .filter_map(|key| {
+        if message.get(key).is_some() {
+            None
+        } else {
+            map.get(key).map(|value| (key.to_string(), value.clone()))
+        }
+    })
+    .collect();
+    replace_map(map, message);
+    for (key, value) in kept {
+        map.insert(key, value);
+    }
 }
 
 /// `202 slot info` replaces the slot. A `502` notice only carries the fields
@@ -301,6 +333,58 @@ mod tests {
             params: vec![("display timecode".into(), "01:02:03:04".into())],
         });
         assert_eq!(snapshot.transport_value("display timecode"), "01:02:03:04");
+    }
+
+    #[test]
+    fn transport_notice_keeps_the_playback_timecode_it_omits() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 208,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "play".into()),
+                ("speed".into(), "100".into()),
+                ("display timecode".into(), "00:01:02:03".into()),
+                ("timecode".into(), "00:01:02:03".into()),
+                ("timeline".into(), "1500".into()),
+                ("loop".into(), "true".into()),
+            ],
+        });
+        snapshot.apply(&DeckMessage {
+            code: 508,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "play".into()),
+                ("speed".into(), "200".into()),
+            ],
+        });
+        assert_eq!(snapshot.speed(), 200);
+        assert_eq!(snapshot.transport_value("loop"), "");
+        assert_eq!(snapshot.transport_value("display timecode"), "00:01:02:03");
+        assert_eq!(snapshot.transport_value("timecode"), "00:01:02:03");
+        assert_eq!(snapshot.transport_value("timeline"), "1500");
+        snapshot.apply(&DeckMessage {
+            code: 513,
+            text: "display timecode".into(),
+            body: String::new(),
+            params: vec![("display timecode".into(), "00:01:02:04".into())],
+        });
+        assert_eq!(snapshot.transport_value("display timecode"), "00:01:02:04");
+        assert_eq!(snapshot.transport_value("timecode"), "00:01:02:03");
+        snapshot.apply(&DeckMessage {
+            code: 208,
+            text: "transport info".into(),
+            body: String::new(),
+            params: vec![
+                ("status".into(), "stopped".into()),
+                ("speed".into(), "0".into()),
+            ],
+        });
+        assert_eq!(snapshot.transport_value("display timecode"), "");
+        assert_eq!(snapshot.transport_value("timecode"), "");
+        assert_eq!(snapshot.transport_value("timeline"), "");
     }
 
     #[test]
