@@ -18,10 +18,6 @@
     "Name": "Preview",
     "Tooltip": "Toggle preview."
   },
-  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
-    "Name": "Loop",
-    "Tooltip": "Toggle loop playback."
-  },
   "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
     "Name": "Slot",
     "Tooltip": "Select a slot."

@@ -18,10 +18,6 @@
     "Name": "プレビュー",
     "Tooltip": "プレビュー表示の切り替え"
   },
-  "dev.mikanseilaboratory.bmd.hyperdeck.loop": {
-    "Name": "ループ",
-    "Tooltip": "ループ再生の切り替え"
-  },
   "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
     "Name": "スロット",
     "Tooltip": "アクティブスロットの選択"

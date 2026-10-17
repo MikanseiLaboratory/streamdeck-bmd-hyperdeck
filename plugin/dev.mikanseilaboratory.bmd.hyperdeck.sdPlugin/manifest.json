@@ -115,28 +115,6 @@
       ]
     },
     {
-      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.loop",
-      "Name": "Loop",
-      "Icon": "images/icon",
-      "Tooltip": "Toggle loop playback.",
-      "PropertyInspectorPath": "propertyinspector/index.html",
-      "States": [
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        },
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        }
-      ],
-      "Controllers": [
-        "Keypad"
-      ]
-    },
-    {
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.slot",
       "Name": "Slot",
       "Icon": "images/icon",
