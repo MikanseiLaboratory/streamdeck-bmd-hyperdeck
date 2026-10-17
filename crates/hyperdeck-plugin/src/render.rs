@@ -33,7 +33,7 @@ pub const LAYOUT_DIAL: &str = "layouts/dial.json";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
 /// Clip list for one deck. `filename` is not the reserved `title` key.
-pub const LAYOUT_CLIP: &str = "layouts/dial-clip.json";
+pub const LAYOUT_CLIP: &str = "layouts/dial-clip-remaining.json";
 /// Clip list for two to four decks.
 pub const LAYOUT_CLIP_MULTI: &str = "layouts/dial-clip-multi.json";
 /// Jog for one deck. `remaining` is the current clip's time left.

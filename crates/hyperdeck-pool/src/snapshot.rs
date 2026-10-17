@@ -144,13 +144,13 @@ impl DeckSnapshot {
                 replace_map(&mut self.playrange, message);
             }
         }
-        if message.code == 205 || text.contains("clips") {
+        if message.code == 205 {
             let rows = parse_rows(&message.body);
             if !rows.is_empty() {
                 self.clips = rows;
             }
         }
-        if message.code == 206 || text.contains("disk list") {
+        if message.code == 206 {
             let rows = parse_rows(&message.body);
             if !rows.is_empty() {
                 self.disk_clips = rows;
@@ -490,6 +490,26 @@ mod tests {
         assert_eq!(snapshot.clips[0].duration, "00:00:10:00");
         assert_eq!(snapshot.clips[0].timeline_in, "00:00:01:00");
         assert_eq!(snapshot.clips[0].timeline_out, "00:00:08:00");
+    }
+
+    #[test]
+    fn partial_clip_notice_does_not_replace_the_complete_clip_list() {
+        let mut snapshot = DeckSnapshot::default();
+        snapshot.apply(&DeckMessage {
+            code: 205,
+            text: "clips info".into(),
+            body: "1: A.mov 00:00:00:00 00:00:10:00\r\n2: B.mov 00:00:10:00 00:00:05:00\r\n".into(),
+            params: Vec::new(),
+        });
+        let changed = snapshot.apply(&DeckMessage {
+            code: 519,
+            text: "clips info".into(),
+            body: "type: update\r\n2: B.mov 00:00:10:00 00:00:06:00\r\n".into(),
+            params: vec![("type".into(), "update".into())],
+        });
+        assert!(!changed);
+        assert_eq!(snapshot.clips.len(), 2);
+        assert_eq!(snapshot.clips[1].duration, "00:00:05:00");
     }
 
     #[test]

@@ -9,7 +9,7 @@ use hyperdeck_tokio::core::types::CodeClass;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::{Mutex, broadcast, mpsc, oneshot};
-use tokio::time::{Instant, sleep, timeout};
+use tokio::time::{Instant, MissedTickBehavior, interval, sleep, timeout};
 use tokio_util::sync::CancellationToken;
 
 use crate::config::{HyperDeckInstanceConfig, TargetGroup};
@@ -27,6 +27,7 @@ pub struct PoolOptions {
     pub initial_backoff: Duration,
     pub max_backoff: Duration,
     pub timecode_interval: Duration,
+    pub transport_poll_interval: Duration,
 }
 
 impl Default for PoolOptions {
@@ -37,6 +38,7 @@ impl Default for PoolOptions {
             initial_backoff: Duration::from_secs(1),
             max_backoff: Duration::from_secs(30),
             timecode_interval: Duration::from_millis(100),
+            transport_poll_interval: Duration::from_millis(500),
         }
     }
 }
@@ -50,6 +52,7 @@ impl PoolOptions {
             initial_backoff: Duration::from_millis(20),
             max_backoff: Duration::from_millis(50),
             timecode_interval: Duration::from_millis(20),
+            transport_poll_interval: Duration::from_millis(50),
         }
     }
 }
@@ -400,6 +403,8 @@ async fn run_session(
         options: options.clone(),
         waiting: false,
         coalesce: false,
+        clips_version: 2,
+        refresh_clips: false,
     };
     link.read_preamble().await?;
     link.handshake(config).await?;
@@ -423,6 +428,13 @@ struct Link {
     options: PoolOptions,
     waiting: bool,
     coalesce: bool,
+    clips_version: u8,
+    refresh_clips: bool,
+}
+
+enum Pending {
+    Call(oneshot::Sender<Result<DeckMessage, CallError>>),
+    BackgroundQuery,
 }
 
 impl Link {
@@ -453,10 +465,11 @@ impl Link {
             .await?;
         self.roundtrip(notify_command()).await?;
         match self.roundtrip(b"clips get: version: 2\r\n".to_vec()).await {
-            Ok(_) => {}
+            Ok(_) => self.clips_version = 2,
             Err(error @ (CallError::Closed | CallError::Timeout)) => return Err(error),
             Err(error) => {
                 tracing::debug!(id = %self.id, %error, "clips get version 2 skipped");
+                self.clips_version = 1;
                 match self.roundtrip(b"clips get\r\n".to_vec()).await {
                     Ok(_) => {}
                     Err(error @ (CallError::Closed | CallError::Timeout)) => return Err(error),
@@ -497,14 +510,17 @@ impl Link {
         commands: &mut mpsc::Receiver<Call>,
         cancel: &CancellationToken,
     ) -> Result<(), CallError> {
-        let mut pending: Option<oneshot::Sender<Result<DeckMessage, CallError>>> = None;
+        let mut pending: Option<Pending> = None;
         let mut deadline: Option<Instant> = None;
         let mut buf = [0u8; 2048];
+        let mut transport_poll = interval(self.options.transport_poll_interval);
+        transport_poll.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        transport_poll.tick().await;
         loop {
             let idle = timeout(self.options.timecode_interval, std::future::pending::<()>());
             tokio::select! {
                 _ = cancel.cancelled() => {
-                    if let Some(reply) = pending.take() {
+                    if let Some(Pending::Call(reply)) = pending.take() {
                         let _ = reply.send(Err(CallError::Closed));
                     }
                     return Ok(());
@@ -512,7 +528,7 @@ impl Link {
                 read = self.stream.read(&mut buf) => {
                     let count = read.map_err(|error| CallError::Protocol(error.to_string()))?;
                     if count == 0 {
-                        if let Some(reply) = pending.take() {
+                        if let Some(Pending::Call(reply)) = pending.take() {
                             let _ = reply.send(Err(CallError::Closed));
                         }
                         return Err(CallError::Closed);
@@ -521,10 +537,12 @@ impl Link {
                         .push(&buf[..count])
                         .map_err(|error| CallError::Protocol(error.to_string()))?;
                     if let Some(message) = self.drain().await?
-                        && let Some(reply) = pending.take()
+                        && let Some(waiter) = pending.take()
                     {
                         deadline = None;
-                        let _ = reply.send(accept(message));
+                        if let Pending::Call(reply) = waiter {
+                            let _ = reply.send(accept(message));
+                        }
                     }
                 }
                 incoming = commands.recv(), if pending.is_none() => {
@@ -542,20 +560,53 @@ impl Link {
                         let _ = call.reply.send(Err(CallError::Protocol(error.to_string())));
                         return Err(CallError::Protocol(error.to_string()));
                     }
-                    pending = Some(call.reply);
+                    pending = Some(Pending::Call(call.reply));
                     deadline = Some(Instant::now() + self.options.command_timeout);
                 }
                 _ = sleep_until(deadline), if deadline.is_some() => {
                     self.session.abandon();
                     self.waiting = false;
                     deadline = None;
-                    if let Some(reply) = pending.take() {
+                    if let Some(Pending::Call(reply)) = pending.take() {
                         let _ = reply.send(Err(CallError::Timeout));
                     }
                 }
                 _ = idle, if self.coalesce => {
                     self.coalesce = false;
                     let _ = self.events.send(PoolEvent::Updated { id: self.id.clone() });
+                }
+                _ = transport_poll.tick(), if pending.is_none() => {
+                    if self.refresh_clips {
+                        let command = if self.clips_version >= 2 {
+                            b"clips get: version: 2\r\n".as_slice()
+                        } else {
+                            b"clips get\r\n".as_slice()
+                        };
+                        self.session
+                            .begin_command()
+                            .map_err(|error| CallError::Protocol(error.to_string()))?;
+                        self.waiting = true;
+                        if let Err(error) = self.stream.write_all(command).await {
+                            self.session.abandon();
+                            self.waiting = false;
+                            return Err(CallError::Protocol(error.to_string()));
+                        }
+                        self.refresh_clips = false;
+                        pending = Some(Pending::BackgroundQuery);
+                        deadline = Some(Instant::now() + self.options.command_timeout);
+                        continue;
+                    }
+                    self.session
+                        .begin_command()
+                        .map_err(|error| CallError::Protocol(error.to_string()))?;
+                    self.waiting = true;
+                    if let Err(error) = self.stream.write_all(b"transport info\r\n").await {
+                        self.session.abandon();
+                        self.waiting = false;
+                        return Err(CallError::Protocol(error.to_string()));
+                    }
+                    pending = Some(Pending::BackgroundQuery);
+                    deadline = Some(Instant::now() + self.options.command_timeout);
                 }
             }
         }
@@ -634,6 +685,12 @@ impl Link {
     }
 
     async fn apply_message(&mut self, message: DeckMessage) {
+        // 519 is a partial timeline-change notice. Fetch a complete 205 block
+        // before replacing the cached clip list.
+        if message.code == 519 {
+            self.refresh_clips = true;
+            return;
+        }
         let coalesced = is_timecode(&message);
         let changed = {
             let mut snapshot = self.snapshot.lock().await;
@@ -769,6 +826,40 @@ mod tests {
             !snapshot.transport_value("display timecode").is_empty(),
             "play notification should cache a timecode"
         );
+    }
+
+    #[tokio::test]
+    async fn transport_poll_updates_playback_when_notifications_are_disabled() {
+        let demo = listen().await;
+        let pool = HyperDeckPool::new(PoolOptions::for_tests());
+        pool.reconcile(vec![config(demo.addr)], Vec::new()).await;
+        wait_connected(&pool).await;
+        pool.call(
+            "deck",
+            "notify",
+            &[
+                ("transport", "false"),
+                ("display timecode", "false"),
+                ("timeline position", "false"),
+            ],
+        )
+        .await
+        .unwrap();
+        pool.call("deck", "play", &[]).await.unwrap();
+        assert_eq!(pool.snapshot("deck").await.unwrap().status(), "stopped");
+
+        let deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            let snapshot = pool.snapshot("deck").await.unwrap();
+            if snapshot.status() == "play" {
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "transport poll did not refresh playback: {snapshot:?}"
+            );
+            sleep(Duration::from_millis(20)).await;
+        }
     }
 
     #[tokio::test]

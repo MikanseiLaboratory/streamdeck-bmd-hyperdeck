@@ -1066,7 +1066,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial-clip.json",
+        "layout": "layouts/dial-clip-remaining.json",
         "TriggerDescription": {
           "Rotate": "Clip List",
           "Push": "Press",

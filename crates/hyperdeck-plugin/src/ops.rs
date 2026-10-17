@@ -687,11 +687,7 @@ fn clip_list_caption(snap: &DeckSnapshot) -> String {
     )
 }
 
-/// Time left in the current clip, from the deck's out point and timeline timecode.
-///
-/// Empty when the clip row, the frame rate, or the position timecode was not received.
-/// `timeline position` advances the last `timecode`/`timeline` pair. A record
-/// transport does not use this clock.
+/// Time left in the current clip from the deck's clip list and playback position.
 fn playback_remaining(snap: &DeckSnapshot) -> String {
     if snap.status() == "record" {
         return String::new();
@@ -700,65 +696,78 @@ fn playback_remaining(snap: &DeckSnapshot) -> String {
     if id.is_empty() {
         return String::new();
     }
-    let Some(clip) = snap.clips.iter().find(|clip| clip.id == id) else {
+    let Some((index, clip)) = snap
+        .clips
+        .iter()
+        .enumerate()
+        .find(|(_, clip)| clip.id == id)
+    else {
         return String::new();
     };
     let Some(fps) = reported_fps(snap) else {
         return String::new();
     };
-    let Some((in_frames, end_frames)) = clip_span(clip, snap, fps) else {
+    let Some(duration) = parse_timecode(&clip.duration).map(|time| time.to_frames(fps)) else {
         return String::new();
     };
-    let Some(position) = timeline_position_frames(snap, fps) else {
+    let remain = remaining_from_timeline_frames(snap, index, fps, duration)
+        .or_else(|| remaining_from_timecode(snap, clip, fps, duration));
+    let Some(remain) = remain else {
         return String::new();
     };
-    if clip.timeline_out.trim().is_empty() {
-        let duration = end_frames.saturating_sub(in_frames);
-        let past = position.saturating_sub(end_frames);
-        let before = in_frames.saturating_sub(position);
-        if past > duration || before > duration {
-            return String::new();
-        }
-    }
-    let from = position.max(in_frames);
-    let remain = end_frames.saturating_sub(from);
     let text = Timecode::from_frames(remain, fps).to_string();
     format!("-{}", short_timecode(&text))
 }
 
-fn clip_span(clip: &hyperdeck_pool::ClipRow, snap: &DeckSnapshot, fps: u32) -> Option<(u32, u32)> {
-    if let Some(out) = parse_timecode(&clip.timeline_out) {
-        let end = out.to_frames(fps);
-        let start = parse_timecode(&clip.timeline_in)
-            .map(|point| point.to_frames(fps))
-            .or_else(|| {
-                parse_timecode(&clip.duration)
-                    .map(|duration| end.saturating_sub(duration.to_frames(fps)))
-            })
-            .unwrap_or(0);
-        return Some((start, end));
-    }
-    let output = snap.config_value("timecode output").trim();
-    if output.eq_ignore_ascii_case("clip")
-        || (!output.is_empty() && !output.eq_ignore_ascii_case("timeline"))
-    {
-        return None;
-    }
-    let start = parse_timecode(&clip.start)?.to_frames(fps);
-    let duration = parse_timecode(&clip.duration)?.to_frames(fps);
-    Some((start, start.saturating_add(duration)))
-}
-
-fn timeline_position_frames(snap: &DeckSnapshot, fps: u32) -> Option<u32> {
-    let base = parse_timecode(snap.transport_value("timecode"))?.to_frames(fps);
-    let Some(origin) = snap.transport_value("timeline").parse::<u32>().ok() else {
-        return Some(base);
-    };
-    let live = snap
+/// Prefer the protocol's numeric playback timeline position. Clip timeline
+/// offsets are the sum of the durations the deck returned in `clips get`.
+fn remaining_from_timeline_frames(
+    snap: &DeckSnapshot,
+    index: usize,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = snap
         .transport_value("timeline position")
         .parse::<u32>()
-        .unwrap_or(origin);
-    Some(base.saturating_add(live).saturating_sub(origin))
+        .ok()
+        .or_else(|| snap.transport_value("timeline").parse::<u32>().ok())?;
+    let start = snap.clips[..index].iter().try_fold(0u32, |total, clip| {
+        let frames = parse_timecode(&clip.duration)?.to_frames(fps);
+        Some(total.saturating_add(frames))
+    })?;
+    let end = start.saturating_add(duration);
+    if position < start || position > end {
+        return None;
+    }
+    Some(end.saturating_sub(position))
+}
+
+/// Fallback for decks that report a timecode but no numeric timeline frame.
+/// Try both the detailed row's in/out points and the clip start/duration pair;
+/// use a range only when the received playback timecode falls inside it.
+fn remaining_from_timecode(
+    snap: &DeckSnapshot,
+    clip: &hyperdeck_pool::ClipRow,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = parse_timecode(snap.transport_value("timecode"))?.to_frames(fps);
+    let mut ranges = Vec::with_capacity(2);
+    if let (Some(start), Some(end)) = (
+        parse_timecode(&clip.timeline_in),
+        parse_timecode(&clip.timeline_out),
+    ) {
+        ranges.push((start.to_frames(fps), end.to_frames(fps)));
+    }
+    if let Some(start) = parse_timecode(&clip.start) {
+        let start = start.to_frames(fps);
+        ranges.push((start, start.saturating_add(duration)));
+    }
+    ranges
+        .into_iter()
+        .find(|(start, end)| position >= *start && position <= *end)
+        .map(|(_, end)| end.saturating_sub(position))
 }
 
 fn parse_timecode(raw: &str) -> Option<Timecode> {
