@@ -690,10 +690,9 @@ fn uses_timeline(params: &ActionParams) -> bool {
 
 /// Current, remaining, and total time.
 ///
-/// Clip time is the position inside the current clip, taken from the clip's
-/// start timecode and the transport `timecode`. Timeline time is used only
-/// when the inspector selects it, and then it reads the numeric timeline
-/// position across every clip the deck listed.
+/// Clip time stays inside the current clip. The deck's numeric timeline
+/// position is only the frame counter used to find that clip offset. The
+/// whole-timeline clock is drawn when the inspector selects Timeline.
 fn playback_clock(snap: &DeckSnapshot, params: &ActionParams) -> PlaybackClock {
     if snap.status() == "record" {
         return empty_clock();
@@ -735,7 +734,12 @@ fn time_name(kind: ActionKind, snap: &DeckSnapshot) -> String {
 
 fn clip_clock(snap: &DeckSnapshot) -> PlaybackClock {
     let id = current_clip_id(snap);
-    let Some(clip) = snap.clips.iter().find(|clip| clip.id == id) else {
+    let Some((index, clip)) = snap
+        .clips
+        .iter()
+        .enumerate()
+        .find(|(_, clip)| clip.id == id)
+    else {
         return empty_clock();
     };
     let Some(fps) = reported_fps(snap) else {
@@ -744,18 +748,70 @@ fn clip_clock(snap: &DeckSnapshot) -> PlaybackClock {
     let Some(duration) = duration_frames(&clip.duration, fps) else {
         return empty_clock();
     };
-    clock_from_frames(elapsed_in_clip(snap, clip, fps, duration), duration, fps)
+    clock_from_frames(
+        elapsed_in_clip(snap, clip, index, fps, duration),
+        duration,
+        fps,
+    )
 }
 
-/// Elapsed frames inside the clip. Timeline position and timeline in/out are
-/// not consulted here.
+/// Frames already played in this clip.
+///
+/// The live value on most decks is the numeric timeline position. Subtracting
+/// the durations of the clips before this one turns that counter into a clip
+/// offset, which is still clip time. Timecode is the fallback when that
+/// counter is missing or points at a different clip.
 fn elapsed_in_clip(
+    snap: &DeckSnapshot,
+    clip: &hyperdeck_pool::ClipRow,
+    index: usize,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    elapsed_from_timeline_offset(snap, index, fps, duration)
+        .or_else(|| elapsed_from_reported_timecode(snap, clip, fps, duration))
+}
+
+fn elapsed_from_timeline_offset(
+    snap: &DeckSnapshot,
+    index: usize,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = snap
+        .transport_value("timeline position")
+        .parse::<u32>()
+        .ok()
+        .or_else(|| snap.transport_value("timeline").parse::<u32>().ok())?;
+    let start = snap.clips[..index].iter().try_fold(0u32, |total, clip| {
+        Some(total.saturating_add(duration_frames(&clip.duration, fps)?))
+    })?;
+    let end = start.saturating_add(duration);
+    if position < start || position > end {
+        None
+    } else {
+        Some(position.saturating_sub(start))
+    }
+}
+
+fn elapsed_from_reported_timecode(
     snap: &DeckSnapshot,
     clip: &hyperdeck_pool::ClipRow,
     fps: u32,
     duration: u32,
 ) -> Option<u32> {
-    let position = parse_timecode(snap.transport_value("timecode"))?.to_frames(fps);
+    ["timecode", "display timecode"]
+        .into_iter()
+        .find_map(|key| elapsed_against_clip_start(snap.transport_value(key), clip, fps, duration))
+}
+
+fn elapsed_against_clip_start(
+    raw: &str,
+    clip: &hyperdeck_pool::ClipRow,
+    fps: u32,
+    duration: u32,
+) -> Option<u32> {
+    let position = parse_timecode(raw)?.to_frames(fps);
     let start = if clip.start.trim().is_empty() {
         0
     } else {
@@ -1348,7 +1404,7 @@ mod tests {
     }
 
     #[test]
-    fn clip_time_is_the_default_and_ignores_the_timeline() {
+    fn clip_countdown_uses_the_frame_offset_inside_the_clip() {
         let params = ActionParams::default();
         let mut snap = DeckSnapshot::default();
         snap.transport.insert("status".into(), "play".into());
@@ -1381,6 +1437,27 @@ mod tests {
         );
         assert_eq!(shown.indicator, 40);
 
+        snap.transport
+            .insert("timecode".into(), "10:00:00:00".into());
+        snap.transport
+            .insert("timeline position".into(), "350".into());
+        let shown = face(ActionKind::ClipList, &params, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:04\u{1e}-00:06\u{1e}00:10\u{1e}CLIP"
+        );
+
+        snap.transport.remove("timeline");
+        snap.transport.remove("timeline position");
+        snap.transport
+            .insert("display timecode".into(), "01:00:04:00".into());
+        let shown = face(ActionKind::Jog, &params, &snap);
+        assert_eq!(
+            shown.title,
+            "interview\u{1e}00:04\u{1e}-00:06\u{1e}00:10\u{1e}CLIP"
+        );
+
+        snap.transport.insert("timeline".into(), "100".into());
         let timeline = ActionParams {
             time_basis: "timeline".into(),
             ..ActionParams::default()

@@ -32,8 +32,8 @@ pub struct Segment {
 pub const LAYOUT_DIAL: &str = "layouts/dial.json";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
-/// Current, remaining, and total time for one deck.
-pub const LAYOUT_TIMES: &str = "layouts/dial-times.json";
+/// Current time, large countdown, and total for one deck.
+pub const LAYOUT_TIMES: &str = "layouts/dial-countdown.json";
 /// The same readout for two to four decks.
 pub const LAYOUT_TIMES_MULTI: &str = "layouts/dial-times-multi.json";
 
@@ -149,7 +149,6 @@ fn times_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) -> (
                 "filename": filename,
                 "basis": basis,
                 "nowLabel": "Now",
-                "leftLabel": "Left",
                 "totalLabel": "Total",
                 "now": now,
                 "left": left,

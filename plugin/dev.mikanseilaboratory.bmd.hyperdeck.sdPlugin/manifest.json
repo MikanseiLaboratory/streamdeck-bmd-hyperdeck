@@ -965,7 +965,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial-times.json",
+        "layout": "layouts/dial-countdown.json",
         "TriggerDescription": {
           "Rotate": "Jog",
           "Push": "Press"
@@ -1061,7 +1061,7 @@
         "Encoder"
       ],
       "Encoder": {
-        "layout": "layouts/dial-times.json",
+        "layout": "layouts/dial-countdown.json",
         "TriggerDescription": {
           "Rotate": "Clip List",
           "Push": "Press"
