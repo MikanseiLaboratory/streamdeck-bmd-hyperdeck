@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "dev.mikanseilaboratory.bmd.hyperdeck.dial-clip",
+  "items": [
+    {
+      "key": "filename",
+      "type": "text",
+      "rect": [8, 8, 184, 32],
+      "font": { "size": 16, "weight": 600 },
+      "alignment": "left",
+      "text-overflow": "ellipsis"
+    },
+    {
+      "key": "timecode",
+      "type": "text",
+      "rect": [8, 44, 184, 24],
+      "font": { "size": 16, "weight": 500 },
+      "alignment": "left"
+    },
+    {
+      "key": "indicator",
+      "type": "bar",
+      "rect": [8, 78, 184, 8],
+      "value": 0,
+      "subtype": 4,
+      "border_w": 0
+    }
+  ]
+}

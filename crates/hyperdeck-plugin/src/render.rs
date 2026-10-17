@@ -32,6 +32,10 @@ pub struct Segment {
 pub const LAYOUT_DIAL: &str = "layouts/dial.json";
 /// Custom layout for two to four decks.
 pub const LAYOUT_MULTI: &str = "layouts/dial-multi.json";
+/// Clip list for one deck. `filename` is not the reserved `title` key.
+pub const LAYOUT_CLIP: &str = "layouts/dial-clip.json";
+/// Clip list for two to four decks.
+pub const LAYOUT_CLIP_MULTI: &str = "layouts/dial-clip-multi.json";
 
 /// `0` when every band is active. Stream Deck state 0 is the lit state.
 pub fn hardware_state(states: impl IntoIterator<Item = SegmentState>) -> i32 {
@@ -97,6 +101,9 @@ pub fn dial_feedback(
     levels: &[u8],
     foreground: &str,
 ) -> (String, Value) {
+    if kind == ActionKind::ClipList {
+        return clip_list_feedback(segments, captions, levels);
+    }
     let icon = dial_icon(kind, foreground);
     if segments.len() <= 1 {
         let segment = segments.first();
@@ -116,15 +123,8 @@ pub fn dial_feedback(
         let title = captions
             .iter()
             .take(4)
-            .map(|caption| {
-                if kind == ActionKind::ClipList {
-                    let (name, timecode) = dial_text(kind, caption);
-                    clip_line(&name, &timecode)
-                } else {
-                    caption.clone()
-                }
-            })
-            .filter(|caption| !caption.is_empty() && caption != kind.dial_heading())
+            .filter(|caption| !caption.is_empty() && caption.as_str() != kind.dial_heading())
+            .cloned()
             .collect::<Vec<_>>()
             .join(" · ");
         let mut payload = json!({ "title": title });
@@ -138,22 +138,50 @@ pub fn dial_feedback(
     }
 }
 
-fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
-    if kind == ActionKind::ClipList {
-        let mut parts = caption.split('\u{1e}');
-        let id = parts.next().unwrap_or("");
-        let name = parts.next().unwrap_or("");
-        let timecode = parts.next().unwrap_or("");
-        let title = if !name.is_empty() {
-            name.to_string()
-        } else if !id.is_empty() {
-            id.to_string()
-        } else {
-            kind.dial_heading().to_string()
-        };
-        return (title, timecode.to_string());
+fn clip_list_feedback(segments: &[Segment], captions: &[String], levels: &[u8]) -> (String, Value) {
+    if segments.len() <= 1 {
+        let caption = captions.first().map(String::as_str).unwrap_or("");
+        let (filename, timecode) = clip_fields(caption);
+        let level = levels.first().copied().unwrap_or(0);
+        return (
+            LAYOUT_CLIP.to_string(),
+            json!({
+                "filename": filename,
+                "timecode": timecode,
+                "indicator": indicator(segments.first(), level),
+            }),
+        );
     }
+    let mut payload = serde_json::Map::new();
+    for index in 0..4 {
+        let text = captions.get(index).map(|caption| {
+            let (filename, timecode) = clip_fields(caption);
+            clip_line(&filename, &timecode)
+        });
+        payload.insert(
+            format!("line{}", index + 1),
+            json!(text.unwrap_or_default()),
+        );
+    }
+    (LAYOUT_CLIP_MULTI.to_string(), Value::Object(payload))
+}
+
+fn dial_text(kind: ActionKind, caption: &str) -> (String, String) {
     (kind.dial_heading().to_string(), caption.to_string())
+}
+
+/// File name and display timecode from a clip-list caption.
+fn clip_fields(caption: &str) -> (String, String) {
+    let mut parts = caption.split('\u{1e}');
+    let id = parts.next().unwrap_or("");
+    let name = parts.next().unwrap_or("");
+    let timecode = parts.next().unwrap_or("");
+    let filename = if !name.is_empty() {
+        name.to_string()
+    } else {
+        id.to_string()
+    };
+    (filename, timecode.to_string())
 }
 
 fn clip_line(name: &str, timecode: &str) -> String {
@@ -333,9 +361,10 @@ mod tests {
             &[100],
             "#f4f7fb",
         );
-        assert_eq!(layout, LAYOUT_DIAL);
-        assert_eq!(payload["title"], "interview.mov");
-        assert_eq!(payload["value"], "01:02:03:04");
+        assert_eq!(layout, LAYOUT_CLIP);
+        assert_eq!(payload["filename"], "interview.mov");
+        assert_eq!(payload["timecode"], "01:02:03:04");
+        assert!(payload.get("title").is_none());
 
         let (layout, payload) = dial_feedback(
             ActionKind::ClipList,
@@ -347,10 +376,10 @@ mod tests {
             &[100, 50],
             "#f4f7fb",
         );
-        assert_eq!(layout, LAYOUT_MULTI);
-        assert_eq!(
-            payload["title"],
-            "interview.mov 01:02:03 · slate.mov 00:10:00"
-        );
+        assert_eq!(layout, LAYOUT_CLIP_MULTI);
+        assert_eq!(payload["line1"], "interview.mov 01:02:03");
+        assert_eq!(payload["line2"], "slate.mov 00:10:00");
+        assert_eq!(payload["line3"], "");
+        assert!(payload.get("title").is_none());
     }
 }

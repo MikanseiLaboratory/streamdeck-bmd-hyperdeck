@@ -177,11 +177,22 @@ fn merge_map(map: &mut BTreeMap<String, String>, message: &DeckMessage) {
 
 fn clip_name_from_row(rest: &str) -> String {
     let tokens: Vec<&str> = rest.split_whitespace().collect();
+    if tokens.is_empty() {
+        return String::new();
+    }
+    // Version 1: `{name} {start} {duration}`.
     if tokens.len() >= 3
         && is_timecode(tokens[tokens.len() - 1])
         && is_timecode(tokens[tokens.len() - 2])
     {
         return tokens[..tokens.len() - 2].join(" ");
+    }
+    // Version 2 and 3: timecodes first, then the file name.
+    let name_at = tokens.iter().position(|token| !is_timecode(token));
+    if let Some(index) = name_at
+        && index > 0
+    {
+        return tokens[index..].join(" ");
     }
     tokens.first().copied().unwrap_or("").to_string()
 }
@@ -284,5 +295,13 @@ mod tests {
             params: Vec::new(),
         });
         assert_eq!(snapshot.disk_clips[0].name, "clip.mov");
+        snapshot.apply(&DeckMessage {
+            code: 205,
+            text: "clips info".into(),
+            body: "1: 00:00:00:00 00:00:10:00 00:00:01:00 00:00:08:00 folder/My Clip.mov\r\n"
+                .into(),
+            params: Vec::new(),
+        });
+        assert_eq!(snapshot.clips[0].name, "folder/My Clip.mov");
     }
 }
