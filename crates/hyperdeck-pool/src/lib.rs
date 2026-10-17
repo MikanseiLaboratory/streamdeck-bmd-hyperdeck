@@ -10,7 +10,10 @@ mod pool;
 mod snapshot;
 mod status;
 
-pub use config::{HyperDeckInstanceConfig, TargetGroup, TargetSelector, resolve_targets};
+pub use config::{
+    DEFAULT_UPDATE_INTERVAL_MS, HyperDeckInstanceConfig, MAX_UPDATE_INTERVAL_MS,
+    MIN_UPDATE_INTERVAL_MS, TargetGroup, TargetSelector, clamp_update_interval_ms, resolve_targets,
+};
 pub use message::DeckMessage;
 pub use pool::{CallError, HyperDeckPool, PoolEvent, PoolOptions};
 pub use snapshot::{ClipRow, DeckSnapshot};

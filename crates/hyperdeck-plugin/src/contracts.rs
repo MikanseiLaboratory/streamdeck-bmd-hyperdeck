@@ -25,6 +25,8 @@ pub struct InstanceConfig {
     pub username: String,
     #[serde(default)]
     pub password: String,
+    #[serde(default = "default_update_interval_ms")]
+    pub update_interval_ms: u32,
 }
 
 fn default_host() -> String {
@@ -43,6 +45,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_update_interval_ms() -> u32 {
+    hyperdeck_pool::DEFAULT_UPDATE_INTERVAL_MS
+}
+
 impl From<InstanceConfig> for HyperDeckInstanceConfig {
     fn from(value: InstanceConfig) -> Self {
         Self {
@@ -54,6 +60,7 @@ impl From<InstanceConfig> for HyperDeckInstanceConfig {
             enabled: value.enabled,
             username: value.username,
             password: value.password,
+            update_interval_ms: value.update_interval_ms,
         }
     }
 }
@@ -115,6 +122,7 @@ pub fn localhost_instance() -> InstanceConfig {
         enabled: true,
         username: String::new(),
         password: String::new(),
+        update_interval_ms: default_update_interval_ms(),
     }
 }
 

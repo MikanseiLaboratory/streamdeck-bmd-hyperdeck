@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
 use hyperdeck_tokio::core::RawMessage;
@@ -8,11 +9,11 @@ use hyperdeck_tokio::core::session::{ClientEvent, ClientSession};
 use hyperdeck_tokio::core::types::CodeClass;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::sync::{Mutex, broadcast, mpsc, oneshot};
-use tokio::time::{Instant, MissedTickBehavior, interval, sleep, timeout};
+use tokio::sync::{Mutex, Notify, broadcast, mpsc, oneshot};
+use tokio::time::{Instant, sleep, timeout};
 use tokio_util::sync::CancellationToken;
 
-use crate::config::{HyperDeckInstanceConfig, TargetGroup};
+use crate::config::{HyperDeckInstanceConfig, TargetGroup, clamp_update_interval_ms};
 use crate::message::DeckMessage;
 use crate::snapshot::DeckSnapshot;
 use crate::status::{ConnectionStatus, InstanceStatus};
@@ -27,6 +28,8 @@ pub struct PoolOptions {
     pub initial_backoff: Duration,
     pub max_backoff: Duration,
     pub timecode_interval: Duration,
+    /// Kept for existing callers. The session polls each deck at
+    /// `HyperDeckInstanceConfig::update_interval_ms` instead.
     pub transport_poll_interval: Duration,
 }
 
@@ -38,7 +41,7 @@ impl Default for PoolOptions {
             initial_backoff: Duration::from_secs(1),
             max_backoff: Duration::from_secs(30),
             timecode_interval: Duration::from_millis(100),
-            transport_poll_interval: Duration::from_millis(500),
+            transport_poll_interval: Duration::from_millis(200),
         }
     }
 }
@@ -92,6 +95,8 @@ struct Slot {
     commands: mpsc::Sender<Call>,
     cancel: CancellationToken,
     status: ConnectionStatus,
+    poll_ms: Arc<AtomicU32>,
+    poll_wake: Arc<Notify>,
 }
 
 struct Inner {
@@ -150,9 +155,16 @@ impl HyperDeckPool {
         for config in &configs {
             let restart = match inner.slots.get(&config.id) {
                 None => true,
-                Some(slot) => slot.config != *config,
+                Some(slot) => !same_session(&slot.config, config),
             };
             if !restart {
+                if let Some(slot) = inner.slots.get_mut(&config.id) {
+                    let next = clamp_update_interval_ms(config.update_interval_ms);
+                    if slot.poll_ms.swap(next, Ordering::Relaxed) != next {
+                        slot.poll_wake.notify_one();
+                    }
+                    slot.config = config.clone();
+                }
                 continue;
             }
             if let Some(slot) = inner.slots.remove(&config.id) {
@@ -277,11 +289,17 @@ impl HyperDeckPool {
         let (commands, rx) = mpsc::channel(32);
         let snapshot = Arc::new(Mutex::new(DeckSnapshot::default()));
         let cancel = CancellationToken::new();
+        let poll_ms = Arc::new(AtomicU32::new(clamp_update_interval_ms(
+            config.update_interval_ms,
+        )));
+        let poll_wake = Arc::new(Notify::new());
         let events = self.events.clone();
         let options = self.options.clone();
         let task_snapshot = Arc::clone(&snapshot);
         let task_cancel = cancel.clone();
         let task_config = config.clone();
+        let task_poll_ms = Arc::clone(&poll_ms);
+        let task_poll_wake = Arc::clone(&poll_wake);
         let pool = self.clone();
         tokio::spawn(async move {
             supervise(
@@ -292,6 +310,8 @@ impl HyperDeckPool {
                 events,
                 options,
                 pool,
+                task_poll_ms,
+                task_poll_wake,
             )
             .await;
         });
@@ -301,18 +321,38 @@ impl HyperDeckPool {
             commands,
             cancel,
             status: ConnectionStatus::Connecting,
+            poll_ms,
+            poll_wake,
         }
     }
 }
 
+/// Host, credentials, and enablement identify the TCP session.
+/// A poll-interval edit keeps that session and only wakes the pump.
+fn same_session(current: &HyperDeckInstanceConfig, next: &HyperDeckInstanceConfig) -> bool {
+    current.id == next.id
+        && current.name == next.name
+        && current.host == next.host
+        && current.port == next.port
+        && current.color == next.color
+        && current.enabled == next.enabled
+        && current.username == next.username
+        && current.password == next.password
+}
+
 fn disabled_slot(config: HyperDeckInstanceConfig) -> Slot {
     let (commands, _rx) = mpsc::channel(1);
+    let poll_ms = Arc::new(AtomicU32::new(clamp_update_interval_ms(
+        config.update_interval_ms,
+    )));
     Slot {
         config,
         snapshot: Arc::new(Mutex::new(DeckSnapshot::default())),
         commands,
         cancel: CancellationToken::new(),
         status: ConnectionStatus::Disabled,
+        poll_ms,
+        poll_wake: Arc::new(Notify::new()),
     }
 }
 
@@ -333,6 +373,8 @@ async fn supervise(
     events: broadcast::Sender<PoolEvent>,
     options: PoolOptions,
     pool: HyperDeckPool,
+    poll_ms: Arc<AtomicU32>,
+    poll_wake: Arc<Notify>,
 ) {
     let mut backoff = options.initial_backoff;
     loop {
@@ -348,6 +390,8 @@ async fn supervise(
             &events,
             &options,
             &pool,
+            &poll_ms,
+            &poll_wake,
         )
         .await
         {
@@ -384,6 +428,8 @@ async fn run_session(
     events: &broadcast::Sender<PoolEvent>,
     options: &PoolOptions,
     pool: &HyperDeckPool,
+    poll_ms: &Arc<AtomicU32>,
+    poll_wake: &Arc<Notify>,
 ) -> Result<(), CallError> {
     let stream = tokio::select! {
         _ = cancel.cancelled() => return Ok(()),
@@ -401,6 +447,8 @@ async fn run_session(
         events: events.clone(),
         id: config.id.clone(),
         options: options.clone(),
+        poll_ms: Arc::clone(poll_ms),
+        poll_wake: Arc::clone(poll_wake),
         waiting: false,
         coalesce: false,
         clips_version: 2,
@@ -426,6 +474,8 @@ struct Link {
     events: broadcast::Sender<PoolEvent>,
     id: String,
     options: PoolOptions,
+    poll_ms: Arc<AtomicU32>,
+    poll_wake: Arc<Notify>,
     waiting: bool,
     coalesce: bool,
     clips_version: u8,
@@ -513,9 +563,9 @@ impl Link {
         let mut pending: Option<Pending> = None;
         let mut deadline: Option<Instant> = None;
         let mut buf = [0u8; 2048];
-        let mut transport_poll = interval(self.options.transport_poll_interval);
-        transport_poll.set_missed_tick_behavior(MissedTickBehavior::Skip);
-        transport_poll.tick().await;
+        let mut next_poll = Instant::now() + self.poll_period();
+        let poll_wake = Arc::clone(&self.poll_wake);
+        let mut poll_changed = std::pin::pin!(poll_wake.notified());
         loop {
             let idle = timeout(self.options.timecode_interval, std::future::pending::<()>());
             tokio::select! {
@@ -575,7 +625,12 @@ impl Link {
                     self.coalesce = false;
                     let _ = self.events.send(PoolEvent::Updated { id: self.id.clone() });
                 }
-                _ = transport_poll.tick(), if pending.is_none() => {
+                _ = &mut poll_changed => {
+                    poll_changed.set(poll_wake.notified());
+                    next_poll = Instant::now() + self.poll_period();
+                }
+                _ = sleep_until(Some(next_poll)), if pending.is_none() => {
+                    next_poll = Instant::now() + self.poll_period();
                     if self.refresh_clips {
                         let command = if self.clips_version >= 2 {
                             b"clips get: version: 2\r\n".as_slice()
@@ -610,6 +665,12 @@ impl Link {
                 }
             }
         }
+    }
+
+    fn poll_period(&self) -> Duration {
+        Duration::from_millis(u64::from(clamp_update_interval_ms(
+            self.poll_ms.load(Ordering::Relaxed),
+        )))
     }
 
     async fn roundtrip(&mut self, bytes: Vec<u8>) -> Result<DeckMessage, CallError> {
@@ -793,6 +854,7 @@ mod tests {
             enabled: true,
             username: String::new(),
             password: String::new(),
+            update_interval_ms: 50,
         }
     }
 
@@ -825,6 +887,21 @@ mod tests {
         assert!(
             !snapshot.transport_value("display timecode").is_empty(),
             "play notification should cache a timecode"
+        );
+    }
+
+    #[tokio::test]
+    async fn update_interval_changes_without_reconnecting() {
+        let demo = listen().await;
+        let pool = HyperDeckPool::new(PoolOptions::for_tests());
+        let mut deck = config(demo.addr);
+        pool.reconcile(vec![deck.clone()], Vec::new()).await;
+        wait_connected(&pool).await;
+        deck.update_interval_ms = 200;
+        pool.reconcile(vec![deck], Vec::new()).await;
+        assert!(
+            matches!(pool.status("deck").await, Some(ConnectionStatus::Connected)),
+            "changing the poll interval should keep the session"
         );
     }
 

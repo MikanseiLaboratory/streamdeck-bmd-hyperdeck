@@ -17,6 +17,27 @@ pub struct HyperDeckInstanceConfig {
     pub username: String,
     #[serde(default)]
     pub password: String,
+    /// How often this deck is polled for transport state, in milliseconds.
+    #[serde(default = "default_update_interval_ms")]
+    pub update_interval_ms: u32,
+}
+
+/// Default transport poll, faster than the previous fixed 500 ms.
+pub const DEFAULT_UPDATE_INTERVAL_MS: u32 = 200;
+
+/// Lowest poll a connection card can request.
+pub const MIN_UPDATE_INTERVAL_MS: u32 = 50;
+
+/// Highest poll a connection card can request.
+pub const MAX_UPDATE_INTERVAL_MS: u32 = 5_000;
+
+fn default_update_interval_ms() -> u32 {
+    DEFAULT_UPDATE_INTERVAL_MS
+}
+
+/// Keep a requested interval inside the range the session will actually use.
+pub fn clamp_update_interval_ms(value: u32) -> u32 {
+    value.clamp(MIN_UPDATE_INTERVAL_MS, MAX_UPDATE_INTERVAL_MS)
 }
 
 fn default_port() -> u16 {

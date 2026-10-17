@@ -3,6 +3,14 @@ import type { LiveInstance } from "./bridge";
 import type { GlobalSettings, InstanceConfig, TargetGroup } from "./generated/contracts";
 
 const PALETTE = ["#4c8dff", "#ef5b5b", "#3cba7a", "#e2b15a", "#b07cff", "#4ec8d4", "#f08bbd", "#9aa4b5"];
+const DEFAULT_UPDATE_MS = 200;
+const MIN_UPDATE_MS = 50;
+const MAX_UPDATE_MS = 5000;
+
+function updateInterval(value: number | undefined): number {
+  if (value == null || !Number.isFinite(value) || value <= 0) return DEFAULT_UPDATE_MS;
+  return Math.min(MAX_UPDATE_MS, Math.max(MIN_UPDATE_MS, Math.round(value)));
+}
 
 const emptySettings = (): GlobalSettings => ({
   instances: [],
@@ -133,7 +141,8 @@ export function Configuration() {
                     color: PALETTE[current.instances.length % PALETTE.length],
                     enabled: true,
                     username: "",
-                    password: ""
+                    password: "",
+                    updateIntervalMs: DEFAULT_UPDATE_MS
                   }
                 ]
               }))
@@ -237,6 +246,24 @@ function InstanceCard({
           onChange={(event) => onChange({ ...instance, enabled: event.target.checked })}
         />
         Enabled
+      </label>
+      <label className="field">
+        Update ms
+        <input
+          type="number"
+          min={MIN_UPDATE_MS}
+          max={MAX_UPDATE_MS}
+          step={50}
+          value={instance.updateIntervalMs ?? DEFAULT_UPDATE_MS}
+          aria-label="Update interval milliseconds"
+          title="How often this deck is polled, from 50 to 5000 ms"
+          onChange={(event) => {
+            const value = Number(event.target.value);
+            if (!Number.isFinite(value)) return;
+            onChange({ ...instance, updateIntervalMs: Math.min(MAX_UPDATE_MS, Math.max(0, Math.round(value))) });
+          }}
+          onBlur={(event) => onChange({ ...instance, updateIntervalMs: updateInterval(Number(event.target.value)) })}
+        />
       </label>
       <div className="card-actions">
         <button type="button" onClick={onReconnect}>

@@ -950,7 +950,10 @@ fn display_timecode(snap: &DeckSnapshot) -> String {
     short_timecode(raw)
 }
 
-/// `HH:MM:SS:FF` shown as `mm:ss:ff`. Hours appear only when they are greater than zero.
+/// `HH:MM:SS:FF` shown as `mm:ss`. Hours appear only when they are greater than zero.
+///
+/// Frame counts stay off the key. The transport poll is slower than one frame,
+/// so a frame field would usually be stale.
 fn short_timecode(raw: &str) -> String {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -973,17 +976,11 @@ fn short_timecode(raw: &str) -> String {
     if !hours_ok || !rest_ok || !frames_ok {
         return trimmed.to_string();
     }
-    let frames = if parts.len() == 4 {
-        let separator = if body.contains(';') { ';' } else { ':' };
-        format!("{separator}{}", parts[3])
-    } else {
-        String::new()
-    };
     let hours: u32 = parts[0].parse().unwrap_or(0);
     let shown = if hours > 0 {
-        format!("{hours:02}:{}:{}{frames}", parts[1], parts[2])
+        format!("{hours:02}:{}:{}", parts[1], parts[2])
     } else {
-        format!("{}:{}{frames}", parts[1], parts[2])
+        format!("{}:{}", parts[1], parts[2])
     };
     format!("{sign}{shown}")
 }
@@ -1126,7 +1123,7 @@ mod tests {
         snap.slot
             .insert("recording time".into(), "00:01:02:03".into());
         let shown = face(ActionKind::Remaining, &params, &snap);
-        assert_eq!(shown.title, "01:02:03 1000");
+        assert_eq!(shown.title, "01:02 1000");
         assert!(!shown.active);
 
         snap.slot.remove("recording time");
@@ -1181,18 +1178,19 @@ mod tests {
     }
 
     #[test]
-    fn displayed_timecode_keeps_frames_and_hides_zero_hours() {
-        assert_eq!(short_timecode("00:01:23:04"), "01:23:04");
-        assert_eq!(short_timecode("00:00:05;12"), "00:05;12");
-        assert_eq!(short_timecode("01:02:03:04"), "01:02:03:04");
-        assert_eq!(short_timecode("10:00:00:00"), "10:00:00:00");
+    fn displayed_timecode_hides_frames_and_zero_hours() {
+        assert_eq!(short_timecode("00:01:23:04"), "01:23");
+        assert_eq!(short_timecode("00:00:05;12"), "00:05");
+        assert_eq!(short_timecode("01:02:03:04"), "01:02:03");
+        assert_eq!(short_timecode("10:00:00:00"), "10:00:00");
+        assert_eq!(short_timecode("-00:00:06:00"), "-00:06");
         assert_eq!(short_timecode(""), "");
         assert_eq!(short_timecode("stopped"), "stopped");
         let mut snap = snap_status("play", "100");
         snap.transport
             .insert("display timecode".into(), "00:04:05:06".into());
         let shown = face(ActionKind::Jog, &ActionParams::default(), &snap);
-        assert_eq!(shown.title, "04:05:06\u{1e}");
+        assert_eq!(shown.title, "04:05\u{1e}");
     }
 
     #[test]
@@ -1296,7 +1294,7 @@ mod tests {
         let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
         assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03:04\u{1e}");
+        assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03\u{1e}");
         assert_eq!(shown.indicator, 100);
     }
 
@@ -1320,11 +1318,11 @@ mod tests {
             timeline_out: "00:00:10:00".into(),
         }];
         let shown = face(ActionKind::ClipList, &params, &snap);
-        assert_eq!(shown.title, "1\u{1e}interview\u{1e}00:04:00\u{1e}-00:06:00");
+        assert_eq!(shown.title, "1\u{1e}interview\u{1e}00:04\u{1e}-00:06");
         snap.transport
             .insert("timeline position".into(), "125".into());
         let shown = face(ActionKind::Jog, &params, &snap);
-        assert_eq!(shown.title, "00:04:00\u{1e}-00:05:00");
+        assert_eq!(shown.title, "00:04\u{1e}-00:05");
         snap.transport.insert("status".into(), "record".into());
         let shown = face(ActionKind::ClipList, &params, &snap);
         assert!(shown.title.ends_with('\u{1e}'));

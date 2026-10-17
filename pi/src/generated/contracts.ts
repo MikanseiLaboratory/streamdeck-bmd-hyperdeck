@@ -14,5 +14,5 @@ export type TargetSelector = { "kind": "all" } | { "kind": "group", id: string, 
 
 export type TargetGroup = { id: string, name: string, members: Array<string>, };
 
-export type InstanceConfig = { id: string, name: string, host: string, port: number, color: string, enabled: boolean, username: string, password: string, };
+export type InstanceConfig = { id: string, name: string, host: string, port: number, color: string, enabled: boolean, username: string, password: string, updateIntervalMs: number, };
 

@@ -768,6 +768,7 @@ mod tests {
             enabled: true,
             username: String::new(),
             password: String::new(),
+            update_interval_ms: hyperdeck_pool::DEFAULT_UPDATE_INTERVAL_MS,
         }
     }
 
