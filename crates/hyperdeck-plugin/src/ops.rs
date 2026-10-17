@@ -11,8 +11,6 @@ pub enum Gesture {
     Press(PressKind),
     /// Encoder rotation. Positive ticks are clockwise.
     Rotate(i32),
-    /// Encoder touch screen tap.
-    Touch,
 }
 
 /// Text and light derived from one deck snapshot.
@@ -35,7 +33,6 @@ pub fn commands(
 ) -> Vec<String> {
     match gesture {
         Gesture::Rotate(ticks) => rotate_commands(kind, params, snap, ticks),
-        Gesture::Touch => touch_commands(kind, params, snap),
         Gesture::Press(press) => press_commands(kind, params, snap, press),
     }
 }
@@ -498,17 +495,6 @@ fn rotate_commands(
             };
             raw_line(text).into_iter().collect()
         }
-        _ => Vec::new(),
-    }
-}
-
-fn touch_commands(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Vec<String> {
-    match kind {
-        ActionKind::RawDial => raw_line(&params.raw_touch).into_iter().collect(),
-        ActionKind::Shuttle | ActionKind::Jog | ActionKind::Position | ActionKind::ClipList => {
-            press_commands(ActionKind::Stop, params, snap, PressKind::Single)
-        }
-        ActionKind::PlaySpeed => press_commands(kind, params, snap, PressKind::Single),
         _ => Vec::new(),
     }
 }
@@ -1291,8 +1277,6 @@ mod tests {
             Gesture::Press(PressKind::Single),
         );
         assert_eq!(play, vec!["play: clip id: 3\r\n".to_string()]);
-        let stop = commands(ActionKind::ClipList, &params, &snap, Gesture::Touch);
-        assert_eq!(stop, vec!["stop\r\n".to_string()]);
         let shown = face(ActionKind::ClipList, &params, &snap);
         assert_eq!(shown.title, "3\u{1e}interview\u{1e}01:02:03\u{1e}");
         assert_eq!(shown.indicator, 100);

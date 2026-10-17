@@ -242,11 +242,6 @@ impl AppState {
         self.spawn_gesture(context, Gesture::Press(PressKind::Single));
     }
 
-    /// Dial touch.
-    pub fn dial_touch(&self, context: &str) {
-        self.spawn_gesture(context, Gesture::Touch);
-    }
-
     /// Dial rotation.
     pub fn rotate(&self, context: &str, ticks: i32) {
         self.spawn_gesture(context, Gesture::Rotate(ticks));

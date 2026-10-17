@@ -200,7 +200,7 @@
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.cliplist": {
     "Name": "Clip List",
-    "Tooltip": "Shows the current file name, timecode, and clip time remaining. Rotate to another clip. Press to play. Touch to stop."
+    "Tooltip": "Shows the current file name, timecode, and clip time remaining. Rotate to another clip. Press to play."
   },
   "dev.mikanseilaboratory.bmd.hyperdeck.rawdial": {
     "Name": "Raw Dial",

@@ -242,8 +242,6 @@ pub struct ActionParams {
     #[serde(default)]
     pub raw_push: String,
     #[serde(default)]
-    pub raw_touch: String,
-    #[serde(default)]
     pub step: i32,
     #[serde(default = "default_direction")]
     pub direction: String,
@@ -317,7 +315,6 @@ impl Default for ActionParams {
             raw_rotate_up: String::new(),
             raw_rotate_down: String::new(),
             raw_push: String::new(),
-            raw_touch: String::new(),
             step: 0,
             direction: default_direction(),
             active_color: String::new(),

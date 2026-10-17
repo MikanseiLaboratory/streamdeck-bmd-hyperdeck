@@ -43,7 +43,6 @@ const emptyParams = (): ActionParams => ({
   rawRotateUp: "",
   rawRotateDown: "",
   rawPush: "",
-  rawTouch: "",
   step: 0,
   direction: "next",
   activeColor: "",
@@ -502,7 +501,6 @@ function Fields({
           <TextRow label="Clockwise" value={params.rawRotateUp} onChange={(rawRotateUp) => update({ rawRotateUp })} />
           <TextRow label="Counter" value={params.rawRotateDown} onChange={(rawRotateDown) => update({ rawRotateDown })} />
           <TextRow label="Push" value={params.rawPush} onChange={(rawPush) => update({ rawPush })} />
-          <TextRow label="Touch" value={params.rawTouch} onChange={(rawTouch) => update({ rawTouch })} />
         </>
       )}
       {LONG_PRESS.has(kind) && (

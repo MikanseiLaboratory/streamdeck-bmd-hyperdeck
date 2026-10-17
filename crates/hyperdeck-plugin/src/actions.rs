@@ -1,7 +1,7 @@
 use serde_json::Value;
 use streamdeck_plugin::{
     ActionContext, ActionPayload, DialRotatePayload, EncoderAction, KeypadAction, Result,
-    TouchTapPayload, streamdeck_action,
+    streamdeck_action,
 };
 
 use crate::contracts::ActionSettings;
@@ -142,15 +142,6 @@ macro_rules! hyperdeck_dial {
                 ctx: &ActionContext<'_, Self::Settings, Self::State>,
             ) -> Result<()> {
                 ctx.state().dial_down(&ctx.identity().context);
-                Ok(())
-            }
-
-            async fn on_touch_tap(
-                &mut self,
-                _payload: &TouchTapPayload,
-                ctx: &ActionContext<'_, Self::Settings, Self::State>,
-            ) -> Result<()> {
-                ctx.state().dial_touch(&ctx.identity().context);
                 Ok(())
             }
 
