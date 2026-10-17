@@ -215,11 +215,6 @@ hyperdeck_key!(
     ActionKind::Loop
 );
 hyperdeck_key!(
-    SingleClipAction,
-    "dev.mikanseilaboratory.bmd.hyperdeck.singleclip",
-    ActionKind::SingleClip
-);
-hyperdeck_key!(
     SlotAction,
     "dev.mikanseilaboratory.bmd.hyperdeck.slot",
     ActionKind::Slot
@@ -453,7 +448,6 @@ pub fn force_link() {
         std::any::TypeId::of::<StopAction>(),
         std::any::TypeId::of::<PreviewAction>(),
         std::any::TypeId::of::<LoopAction>(),
-        std::any::TypeId::of::<SingleClipAction>(),
         std::any::TypeId::of::<SlotAction>(),
         std::any::TypeId::of::<ClipAction>(),
         std::any::TypeId::of::<PlayRangeAction>(),

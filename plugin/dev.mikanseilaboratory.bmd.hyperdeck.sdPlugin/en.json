@@ -22,10 +22,6 @@
     "Name": "Loop",
     "Tooltip": "Toggle loop playback."
   },
-  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
-    "Name": "Single Clip",
-    "Tooltip": "Toggle single clip playback."
-  },
   "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
     "Name": "Slot",
     "Tooltip": "Select a slot."

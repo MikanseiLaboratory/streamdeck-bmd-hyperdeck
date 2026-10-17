@@ -252,7 +252,7 @@ fn icon_path(kind: ActionKind) -> &'static str {
         }
         ActionKind::Stop => r#"<rect x="18" y="18" width="28" height="28"/>"#,
         ActionKind::Preview => r#"<rect x="12" y="18" width="40" height="28" rx="4"/>"#,
-        ActionKind::Loop | ActionKind::SingleClip | ActionKind::PlayRange => {
+        ActionKind::Loop | ActionKind::PlayRange => {
             r#"<path d="M18 32a14 14 0 1 0 4-10M18 16v10h10"/>"#
         }
         ActionKind::Slot | ActionKind::SlotUnblock | ActionKind::ExternalDrive => {

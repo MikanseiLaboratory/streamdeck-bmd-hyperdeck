@@ -137,28 +137,6 @@
       ]
     },
     {
-      "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.singleclip",
-      "Name": "Single Clip",
-      "Icon": "images/icon",
-      "Tooltip": "Toggle single clip playback.",
-      "PropertyInspectorPath": "propertyinspector/index.html",
-      "States": [
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        },
-        {
-          "Image": "images/icon",
-          "FontSize": 11,
-          "TitleAlignment": "bottom"
-        }
-      ],
-      "Controllers": [
-        "Keypad"
-      ]
-    },
-    {
       "UUID": "dev.mikanseilaboratory.bmd.hyperdeck.slot",
       "Name": "Slot",
       "Icon": "images/icon",

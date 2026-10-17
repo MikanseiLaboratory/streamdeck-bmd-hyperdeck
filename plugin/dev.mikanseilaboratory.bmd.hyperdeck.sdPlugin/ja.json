@@ -22,10 +22,6 @@
     "Name": "ループ",
     "Tooltip": "ループ再生の切り替え"
   },
-  "dev.mikanseilaboratory.bmd.hyperdeck.singleclip": {
-    "Name": "シングルクリップ",
-    "Tooltip": "単一クリップ再生の切り替え"
-  },
   "dev.mikanseilaboratory.bmd.hyperdeck.slot": {
     "Name": "スロット",
     "Tooltip": "アクティブスロットの選択"

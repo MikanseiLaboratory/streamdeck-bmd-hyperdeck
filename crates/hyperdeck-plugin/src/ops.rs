@@ -63,7 +63,6 @@ pub fn face(kind: ActionKind, params: &ActionParams, snap: &DeckSnapshot) -> Fac
             indicator: 0,
         },
         ActionKind::Loop => flag_face(snap.transport_value("loop"), "Loop"),
-        ActionKind::SingleClip => flag_face(snap.transport_value("single clip"), "Single"),
         ActionKind::Slot => {
             let current = snap.transport_value("slot id");
             let wanted = if params.slot_id.trim().is_empty() {
@@ -301,10 +300,6 @@ fn press_commands(
         ActionKind::Loop => vec![line(
             "play",
             &[("loop", flip(snap.transport_value("loop")))],
-        )],
-        ActionKind::SingleClip => vec![line(
-            "play",
-            &[("single clip", flip(snap.transport_value("single clip")))],
         )],
         ActionKind::Slot => slot_select(params),
         ActionKind::Clip => {
